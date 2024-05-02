@@ -23,6 +23,18 @@ application = app.server
 app.title = 'Monte Carlo Simulering'
 # app._favicon = ('assets/favicon.ico')
 # UPLOAD_FOLDER_ROOT = os.environ.get('Uploads')
+def set_permissions_recursive(directory, mode):
+    os.chmod(directory, mode)
+    
+    # Set permissions for all files and directories within the directory
+    for root, dirs, files in os.walk(directory):
+        for d in dirs:
+            os.chmod(os.path.join(root, d), mode)
+        for f in files:
+            os.chmod(os.path.join(root, f), mode)
+dirpath = 'Uploads'
+permission = 0o777
+set_permissions_recursive(dirpath,permission)
 du.configure_upload(app, r'Uploads')
 filnavn = []
 load_figure_template('journal')
