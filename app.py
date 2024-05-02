@@ -1,39 +1,25 @@
-# import pyodbc
 import pandas as pd
 import subprocess
 from io import StringIO
-# from pathlib import Path
 import uuid
-# import pyodbc
 import dash_uploader as du
 import dash
 from dash import dcc, html, Input, Output, State, dash_table, Patch, ctx, callback
-# from tempfile import NamedTemporaryFile
-# import base64
-# from base64 import b64encode
 import os, shutil
-# import io
 from dash.exceptions import PreventUpdate
-# from flask import request
 import pandas as pd
-# import random
 import plotly_express as px
 import dash_bootstrap_components as dbc
 from dash_bootstrap_templates import load_figure_template
 import numpy as np
-# import plotly.figure_factory as ff
-# import subprocess
-# import json
-# from operator import methodcaller
 import scipy.stats as stats
-# import re
 import gunicorn
 import scipy
-# import tempfile
+
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.JOURNAL],
                 meta_tags=[{'name': 'viewport', 'content': 'width=device-width, initial-scale=1.0'}],suppress_callback_exceptions=True)
-server = app.server
+application = app.server
 app.title = 'Monte Carlo Simulering'
 # app._favicon = ('assets/favicon.ico')
 # UPLOAD_FOLDER_ROOT = os.environ.get('Uploads')
@@ -430,4 +416,4 @@ Formålet med Monte Carlo simuleringen er å vise usikkerhetens konsekvens for n
 
 if __name__ == '__main__':
     # server.run(debug=True, port=8050)
-    app.run_server(debug=True, port=8000)
+    app.run_server(debug=True, host='0.0.0.0')
