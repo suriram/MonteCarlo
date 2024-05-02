@@ -9,6 +9,8 @@
 ARG PYTHON_VERSION=3.10.12
 FROM python:${PYTHON_VERSION}-slim as base
 
+RUN mkdir /uploads
+RUN chmod 777 /uploads
 # Prevents Python from writing pyc files.
 ENV PYTHONDONTWRITEBYTECODE=1
 
@@ -43,7 +45,7 @@ USER appuser
 
 # Copy the source code into the container.
 COPY . .
-RUN chmod -R 777 /Uploads
+
 # Expose the port that the application listens on.
 EXPOSE 8000
 

@@ -16,26 +16,14 @@ import scipy.stats as stats
 import gunicorn
 import scipy
 
-
+UPLOAD_FOLDER_ROOT = '/Uploads'
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.JOURNAL],
                 meta_tags=[{'name': 'viewport', 'content': 'width=device-width, initial-scale=1.0'}],suppress_callback_exceptions=True)
 application = app.server
 app.title = 'Monte Carlo Simulering'
 # app._favicon = ('assets/favicon.ico')
-# UPLOAD_FOLDER_ROOT = os.environ.get('Uploads')
-def set_permissions_recursive(directory, mode):
-    os.chmod(directory, mode)
-    
-    # Set permissions for all files and directories within the directory
-    for root, dirs, files in os.walk(directory):
-        for d in dirs:
-            os.chmod(os.path.join(root, d), mode)
-        for f in files:
-            os.chmod(os.path.join(root, f), mode)
-dirpath = 'Uploads'
-permission = 0o777
-set_permissions_recursive(dirpath,permission)
-du.configure_upload(app, r'Uploads')
+
+du.configure_upload(app, UPLOAD_FOLDER_ROOT)
 filnavn = []
 load_figure_template('journal')
 testi = 'banan'
@@ -196,7 +184,7 @@ app.layout = get_app_layout
             Output("text-body2", 'children')),
 )
 def callback_on_completion(status: du.UploadStatus):
-    pd.set_option('future.no_silent_downcasting', True)
+    pd.set_option('future.no_silent_downcasting', True)    
     simulations = []
     prosjekter = []
     Sti = status.uploaded_files[0]
