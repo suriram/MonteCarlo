@@ -4,21 +4,14 @@ from io import StringIO
 import uuid
 import dash_uploader as du
 import dash
-from dash import dcc, html, Input, Output, State, dash_table, Patch, ctx, callback
+from dash import dcc, html, Input, Output, State
 import os, shutil
 from dash.exceptions import PreventUpdate
-import pandas as pd
 import plotly_express as px
 import dash_bootstrap_components as dbc
-from dash_bootstrap_templates import load_figure_template
 import numpy as np
 import scipy.stats as stats
-import gunicorn
-import scipy
 import plotly.graph_objects as go
-import scipy.stats as stats
-
-
 
 UPLOAD_FOLDER_ROOT = '/Uploads'
 if not os.path.exists(UPLOAD_FOLDER_ROOT):
@@ -33,6 +26,7 @@ du.configure_upload(app, UPLOAD_FOLDER_ROOT)
 
 app.title = 'Monte Carlo Simulering'
 server = app.server
+
 def format_with_space(number):
     return '{:,.0f}'.format(number).replace(',', ' ')
 
@@ -64,8 +58,12 @@ Simuleringen varierer trafikantnytten, drift og vedlikehold, investeringskostnad
         dbc.Row([
             dbc.Col(dcc.Dropdown(options={}, multi=True, id='dropdown', placeholder='Velg alternativ'), className='mb-auto')
         ]),
-        dbc.Row(id='tabell'),
-        dbc.Row(id='Histo'),
+        dbc.Row([
+            dbc.Col(dcc.Loading(id='loading-1', type='default', children=html.Div(id='tabell')), width=12)
+        ]),
+        dbc.Row([
+            dbc.Col(dcc.Loading(id='loading-2', type='default', children=html.Div(id='Histo')), width=12)
+        ]),
         dbc.Row([
             dbc.Col(dcc.Markdown(id='text-body2', className='text-body mt-4'))
         ]),
