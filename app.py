@@ -32,7 +32,7 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.JOURNAL],
 du.configure_upload(app, UPLOAD_FOLDER_ROOT)
 
 app.title = 'Monte Carlo Simulering'
-
+server = app.server
 def format_with_space(number):
     return '{:,.0f}'.format(number).replace(',', ' ')
 
@@ -50,7 +50,7 @@ def get_upload_component(id):
 
 def get_app_layout():
     return dbc.Container([
-        dbc.Alert(["Dette er en testversjon. Bruk resultatene med omhu. Tilbakemeldinger? Send oss en ", 
+        dbc.Alert(["Dette er en testversjon. Bruk resultatene med omhu. Tilbakemeldinger? Send en ", 
                    html.A('epost.', href='mailto:marius.fossen@vegvesen.no?subject=Tilbakemelding Monte Carlo simulering', className="alert-link"), ], color="warning"),
         dbc.Row([
             dcc.Store(id='memory', storage_type='memory'),
