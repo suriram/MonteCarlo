@@ -16,6 +16,9 @@ import scipy.stats as stats
 import gunicorn
 import scipy
 import plotly.graph_objects as go
+import scipy.stats as stats
+
+
 
 UPLOAD_FOLDER_ROOT = '/Uploads'
 if not os.path.exists(UPLOAD_FOLDER_ROOT):
@@ -139,7 +142,7 @@ def update_graph(dropdown, data, data1):
     confidence_df_std = pd.DataFrame(confidence_data_std, index=['95% KI nedre', '95% KI øvre'])
     df1 = pd.concat([df1, confidence_df_std])
 
-    data4 = df1.reset_index().rename(columns={'index': 'Deskriptiv analyse'}).round(2)
+    data4 = df1.reset_index().rename(columns={'index': 'Deskriptiv analyse (i tusen kroner)'}).round(2)
     data4 = data4.applymap(lambda x: "{:,.0f}".format(x).replace(",", " ") if isinstance(x, (int, float)) else x)
     
     tabell = [dbc.Col(dbc.Table.from_dataframe(data4, striped=True, bordered=True, hover=True), className='mb-auto')]
@@ -168,7 +171,7 @@ def update_graph(dropdown, data, data1):
                 marker=dict(color=color, size=10, symbol="line-ns-open"),
                 showlegend=False,
                 hoverinfo="text",
-                hovertext=f"95% KI nedre {col}: {lower:,.0f},- {Prisnivå} Kroner"
+                hovertext=f"95% KI nedre, {col}: {lower:,.0f},- {Prisnivå} Kroner"
             )
         )
         fig1.add_shape(
@@ -187,7 +190,7 @@ def update_graph(dropdown, data, data1):
                 marker=dict(color=color, size=10, symbol="line-ns-open"),
                 showlegend=False,
                 hoverinfo="text",
-                hovertext=f"95% KI øvre {col}: {upper:,.0f},- {Prisnivå} Kroner"
+                hovertext=f"95% KI øvre, {col}: {upper:,.0f},- {Prisnivå} Kroner"
             )
         )
 
@@ -411,4 +414,4 @@ Formålet med Monte Carlo simuleringen er å vise usikkerhetens konsekvens for n
     return d1, simulations, Prosjekt, Kjell, bobkaare
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=True, port=8080)
