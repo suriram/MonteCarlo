@@ -381,24 +381,24 @@ def callback_on_completion(status: du.UploadStatus):
     simulations = simulations.to_dict()
     Prosjekt = ProsjektPlan.to_dict()
     Bjarne = html.H4('{}'.format(Navn))
-    Kjell = '''Effektbasen har en analyseperiode på {} år. Prisnivået er {} og det er benyttet en kalkulasjonsrente på {} prosent. Ansvarlig for EFFEKTbasen er {}. Det er gjort {} simuleringer.
+    Kjell = '''Prisnivået er {} og det er benyttet en kalkulasjonsrente på {} prosent. Ansvarlig for EFFEKTbasen er {}. Det er gjort {} simuleringer.
 
 Nedenfor må det velges alternativ fra EFFEKTbasen i nedtrekksmenyen. Det er mulig å velge flere alternativer samtidig.
 
 Formålet med Monte Carlo simuleringen er å vise usikkerhetens konsekvens for nettonåverdien til prosjektet. Ved å vise nettonåverdien som et konfidensintervall vil beslutningstager få et mer helhetlig bilde av prosjektetet. Det vil også gi et mer helhetlig bilde når man sammenligner prosjekter på tvers av prosjektporteføljen
 
-#### Beskrivelse av Simuleringen
+Parametrene som er variert i simuleringen er:
+- **Trafikantnytte**: Normalfordelt med et standardavvik på 20%, 
+- **Ulykkeskostnader**: Normalfordelt med et standardavvik på 20%, 
+- **Drift & vedlikehold**: Normalfordelt med et standardavvik på 20%, har også en korrelasjonskoffesient med trafikantnytten på 0,57 og ulykker på 0,28
+- **Investeringskostnader**: Trekantfordeling som går 20% ned og 40% over.
 
-- **Inndata**: Trafikantnytte, ulykkeskostnader, drift & vedlikehold og investeringskostnader er parameterne som varieres i analysen. Investeringskostnaden har lognormal sannsynlighetsfordeling mens de andre variablene er normalfordelt.
-- **Antall Simuleringer**: Det ble gjort 50 000 simuleringer.
-
-#### Resultater'''.format(Levetid, Prisnivå, Kalkrente, Ansvarlig, antall, Prisnivå)
+#### Resultater'''.format(Prisnivå, Kalkrente, Ansvarlig, antall)
     kaare = '''**Akkumulert Sannsynlighet**: Linjeplot som viser den akkumulerte sannsynligheten eller summen over gjentatte simuleringer.'''
     bobkaare = '''#### Diskusjon
     
-- **Sammenligning med Teoretiske Resultater**: Hvis tilgjengelig, sammenlign simulerte resultater med analytiske eller teoretiske resultater.
-- **Tolkning av Resultater**: Diskuter implikasjonene av simulerte resultater og deres relevans for problemet som blir studert.
-- **Begrensninger og Forbedringer**: Identifiser eventuelle begrensninger i simuleringen og mulige forbedringer for fremtidig arbeid.'''
+- **Tolkning av resultater**: Diskuter implikasjonene av simulerte resultater og deres relevans for problemet som blir studert.
+- **Begrensninger og forbedringer**: Identifiser eventuelle begrensninger i simuleringen og mulige forbedringer for fremtidig arbeid.'''
 
     # Remove all files in the upload directory
     for filename in os.listdir(UPLOAD_FOLDER_ROOT):
@@ -414,4 +414,4 @@ Formålet med Monte Carlo simuleringen er å vise usikkerhetens konsekvens for n
     return d1, simulations, Prosjekt, Kjell, bobkaare
 
 if __name__ == '__main__':
-    app.run_server(debug=True, port=8080)
+    app.run_server(debug=True)
