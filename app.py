@@ -4,7 +4,7 @@ from io import StringIO
 import uuid
 import dash_uploader as du
 import dash
-from dash import dcc, html, Input, Output, State
+from dash import dcc, html, Input, Output, State, Patch
 import os, shutil
 from dash.exceptions import PreventUpdate
 import plotly_express as px
@@ -12,20 +12,34 @@ import dash_bootstrap_components as dbc
 import numpy as np
 import scipy.stats as stats
 import plotly.graph_objects as go
+from dash_bootstrap_templates import load_figure_template
+import plotly.io as pio
+
+load_figure_template('bootstrap')
 
 UPLOAD_FOLDER_ROOT = '/Uploads'
 if not os.path.exists(UPLOAD_FOLDER_ROOT):
     os.makedirs(UPLOAD_FOLDER_ROOT)
     os.chmod(UPLOAD_FOLDER_ROOT, 0o777)
 
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.JOURNAL],
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.FONT_AWESOME],
                 meta_tags=[{'name': 'viewport', 'content': 'width=device-width, initial-scale=1.0'}],
                 suppress_callback_exceptions=True)
+
+app.server.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024 * 1024  # 1 GB
 
 du.configure_upload(app, UPLOAD_FOLDER_ROOT)
 
 app.title = 'Monte Carlo Simulering'
 server = app.server
+
+color_mode_switch =  html.Span(
+    [
+        dbc.Label(className="fa fa-moon", html_for="color-mode-switch"),
+        dbc.Switch( id="color-mode-switch", value=False, className="d-inline-block ms-1", persistence=True),
+        dbc.Label(className="fa fa-sun", html_for="color-mode-switch"),
+    ]
+)
 
 def format_with_space(number):
     return '{:,.0f}'.format(number).replace(',', ' ')
@@ -383,7 +397,7 @@ def callback_on_completion(status: du.UploadStatus):
 
 Nedenfor må det velges alternativ fra EFFEKTbasen i nedtrekksmenyen. Det er mulig å velge flere alternativer samtidig.
 
-Formålet med Monte Carlo simuleringen er å vise usikkerhetens konsekvens for nettonåverdien til prosjektet. Ved å vise nettonåverdien som et konfidensintervall vil beslutningstager få et mer helhetlig bilde av prosjektetet. Det vil også gi et mer helhetlig bilde når man sammenligner prosjekter på tvers av prosjektporteføljen
+Formålet med Monte Carlo simuleringen er å vise usikkerhetens konsekvens for nettonåverdien til prosjektet. Ved å vise nettonåverdien som et konfidensintervall vil beslutningstager få et mer helhetlig bilde av prosjektetet. 
 
 Parametrene som er variert i simuleringen er:
 - **Trafikantnytte**: Normalfordelt med et standardavvik på 20%, 
