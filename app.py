@@ -26,7 +26,7 @@ app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP, dbc.icons.
                 meta_tags=[{'name': 'viewport', 'content': 'width=device-width, initial-scale=1.0'}],
                 suppress_callback_exceptions=True)
 
-app.server.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024 * 1024  # 1 GB
+app.server.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024 * 1024  # 2 GB
 
 du.configure_upload(app, UPLOAD_FOLDER_ROOT)
 
@@ -43,7 +43,7 @@ def get_upload_component(id):
         text_completed='Lastet opp: ',
         cancel_button=True,
         max_files=1,
-        max_file_size=20000,  # 20000 Mb
+        max_file_size=2000,  # 2000 Mb
         filetypes=['MDB', 'mdb'],
         upload_id=uuid.uuid1(),  # Unique session id
     )
