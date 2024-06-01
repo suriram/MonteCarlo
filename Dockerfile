@@ -23,4 +23,6 @@ EXPOSE 8080
 ENV NAME MonteCarloSimulering
 
 # Run the application using Gunicorn
-CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:server"]
+CMD ["gunicorn", "--workers=3", "--timeout=120", "app:server"]
+
+#CMD ["gunicorn", "-b", "0.0.0.0:8080", "app:server"]
