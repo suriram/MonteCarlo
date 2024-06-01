@@ -17,7 +17,7 @@ import plotly.io as pio
 
 load_figure_template('bootstrap')
 
-UPLOAD_FOLDER_ROOT = '/data/Uploads'
+UPLOAD_FOLDER_ROOT = '/Uploads'
 if not os.path.exists(UPLOAD_FOLDER_ROOT):
     os.makedirs(UPLOAD_FOLDER_ROOT)
     os.chmod(UPLOAD_FOLDER_ROOT, 0o777)
