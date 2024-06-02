@@ -238,7 +238,7 @@ def callback_on_completion(status: du.UploadStatus):
         return pd.read_csv(StringIO(csv_content))
     query = export_table_to_dataframe('{}'.format(Sti), 'TotKostPlanlagt')
     sql2 = export_table_to_dataframe('{}'.format(Sti), 'TotKostAlt0')
-    print(sql2, '{}'.format(Sti))
+    # print(sql2, '{}'.format(Sti))
     sql3 = export_table_to_dataframe('{}'.format(Sti), 'Prosjekt')
     sql4 = export_table_to_dataframe('{}'.format(Sti), 'Planperioder')
     sql5 = export_table_to_dataframe('{}'.format(Sti), 'Vegnett')
