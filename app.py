@@ -74,8 +74,11 @@ Simuleringen varierer trafikantnytten, drift og vedlikehold, investeringskostnad
             dbc.Col(dcc.Markdown(id='text-body2', className='text-body mt-4'))
         ]),
         dbc.Row([
-            dbc.Col(get_upload_component(id='dash-uploader'), className='m-5')
+            dbc.Col(dcc.Markdown(id='hypothesis-result'))  # Add this row to display the hypothesis test result
         ]),
+        dbc.Row([
+            dbc.Col(get_upload_component(id='dash-uploader'), className='m-5')
+        ]),        
         dbc.Row([
             dbc.Col(
                 html.Div([
@@ -90,7 +93,7 @@ Monte Carlo-simulering gir muligheten til å håndtere usikkerhet og kompleksite
                     ], id="modal", size='xl', is_open=False),
                 ]),
             ),
-        ]),
+        ]),        
     ])
 
 @app.callback(
@@ -112,15 +115,16 @@ def std_dev_confidence_interval(data):
     return m, m - h, m + h
 
 @app.callback(
-    Output('Histo', 'children'),
-    Output('tabell', 'children'),
+    [Output('Histo', 'children'),
+     Output('tabell', 'children'),
+     Output('hypothesis-result', 'children')],
     [Input('dropdown', 'value'),
      State('memory', 'data'),
      State('memory1', 'data')]
 )
 def update_graph(dropdown, data, data1):
     if not dropdown:
-        return [], []
+        return [], [], []
 
     df = pd.DataFrame(data)
     Prosjekt = pd.DataFrame(data1)
@@ -213,7 +217,79 @@ def update_graph(dropdown, data, data1):
     konklusjon = '''### Konklusjon
     
 Oppsummering av de viktigste funnene fra Monte Carlo-simuleringen og deres betydning i forhold til problemet som ble studert.'''
-    return Graf, tabell
+
+    # Hypothesis Test
+    hypothesis_result = ""
+    if len(dropdown) == 2:  # Perform test only if two columns are selected
+        col1, col2 = dropdown
+
+        # Check for NaNs and infinities and remove them
+        df = df.replace([np.inf, -np.inf], np.nan).dropna(subset=[col1, col2])
+
+        # Ensure columns are single-level and extract data
+        if isinstance(df[col1], pd.DataFrame):
+            col1_data = df[col1].values.flatten()
+        else:
+            col1_data = df[col1]
+        
+        if isinstance(df[col2], pd.DataFrame):
+            col2_data = df[col2].values.flatten()
+        else:
+            col2_data = df[col2]
+
+        # Debugging output
+        print(f"Shape of {col1}: {col1_data.shape}, Shape of {col2}: {col2_data.shape}")
+        print(f"Head of {col1}:\n{col1_data[:5]}")
+        print(f"Head of {col2}:\n{col2_data[:5]}")
+
+        # Ensure data in columns are variable
+        if np.unique(col1_data).size == 1 or np.unique(col2_data).size == 1:
+            hypothesis_result = f"The data in either {col1} or {col2} is not variable, hypothesis test cannot be performed."
+        else:
+            # Print the means and standard deviations of the columns for debugging
+            print(f"Snittet til {col1}: {col1_data.mean()}, Snittet til {col2}: {col2_data.mean()}")
+            print(f"Standardavviket til {col1}: {col1_data.std()}, Standardavviket til {col2}: {col2_data.std()}")
+            
+            # Check the distributions
+            print(f"Fordelingen til {col1}:\n{pd.Series(col1_data).value_counts().head()}")
+            print(f"Fordelingen til {col2}:\n{pd.Series(col2_data).value_counts().head()}")
+
+            # Normalize the data if necessary
+            col1_data = (col1_data - col1_data.mean()) / col1_data.std()
+            col2_data = (col2_data - col2_data.mean()) / col2_data.std()
+
+            # Perform the t-test
+            t_stat, p_value = stats.ttest_ind(col1_data, col2_data)
+            
+            # Debugging output
+            print(f"t-statistikk: {t_stat}, p-verdi: {p_value}")
+            
+            hypothesis_result = f'''#### Hypotese test(t-test)
+**Null hypotese t-test(H0)**: Det er ingen forskjell i snittet mellom {col1} og {col2}.
+
+**Null hypotese Mann Whitney U test(H0)**: Det er ingen forskjell i rangsummen mellom {col1} og {col2}.  
+
+**Alternativ hypotese t-test(H1)**: Det er en signifikant forskjell i snittet mellom {col1} og {col2}.  
+
+**Alternativ hypotese Mann Whitney U test(H1)**: Det er en signifikant forskjell i rangsummen mellom {col1} og {col2}. 
+
+
+**t-statistic**: {t_stat:.4e}  
+**p-value**: {p_value:.2e}  
+
+***Konklusjon***: {'Avvis' if p_value < 0.05 else 'Kan ***ikke*** avvise'} nullhypotesen for 0.05 signifikansnivå.
+            '''
+            # Alternatively, use the Mann-Whitney U test for non-normal data
+            u_stat, u_p_value = stats.mannwhitneyu(col1_data, col2_data)
+            print(f"Mann Whitney U test: {u_stat}, p-value: {u_p_value}")
+
+            hypothesis_result += f'\n\n**Mann Whitney U test**: {u_stat:.4f}, p-value: {u_p_value:.4e}\n\n'
+            hypothesis_result += f"***Konklusjon***: {'Avvis' if u_p_value < 0.05 else 'Kan ***ikke*** avvise'} nullhypotesen for 0.05 signifikansnivå."
+            
+    else:
+        hypothesis_result = "#### Hypotese test\nVelg to alternativer for å gjennomføre en hypotesetest."
+
+    return Graf, tabell, hypothesis_result
 
 app.layout = get_app_layout
 
@@ -344,9 +420,9 @@ def callback_on_completion(status: du.UploadStatus):
 
             def cholesky_decomposition_with_correlation(correlation_matrix, std_dev):
                 covariance_matrix = correlation_to_covariance(correlation_matrix, std_dev)
-                print(covariance_matrix)
+                # print(covariance_matrix)
                 cov1 = covariance_from_correlation(correlation_matrix)
-                print(cov1)
+                # print(cov1)
                 L = np.linalg.cholesky(cov1)
                 return L
 
@@ -375,7 +451,7 @@ def callback_on_completion(status: du.UploadStatus):
             dfnnv = dfnnv.rename(columns={"NNV": "Prosjekt: {}, Utbyggingsplan: {} ".format(prosjetnavn, plannavn)})
             simulations.append(dfnnv)
             KI = std_dev_confidence_interval(dfnnv)
-            print(KI)
+            # print(KI)
 
     simulations = pd.concat(simulations, axis=1)
     antall = format_with_space(num_samples)
