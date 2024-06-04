@@ -264,10 +264,10 @@ Oppsummering av de viktigste funnene fra Monte Carlo-simuleringen og deres betyd
             # Debugging output
             print(f"t-statistikk: {t_stat}, p-verdi: {p_value}")
             
-            hypothesis_result = f'''#### Hypotese test(t-test)
-**Null hypotese t-test(H0)**: Det er ingen forskjell i snittet mellom {col1} og {col2}.
+            hypothesis_result = f'''#### Hypotesetest(t-test)
+**Nullhypotese t-test(H0)**: Det er ingen forskjell i snittet mellom {col1} og {col2}.
 
-**Null hypotese Mann Whitney U test(H0)**: Det er ingen forskjell i rangsummen mellom {col1} og {col2}.  
+**Nullhypotese Mann Whitney U test(H0)**: Det er ingen forskjell i rangsummen mellom {col1} og {col2}.  
 
 **Alternativ hypotese t-test(H1)**: Det er en signifikant forskjell i snittet mellom {col1} og {col2}.  
 
@@ -287,7 +287,7 @@ Oppsummering av de viktigste funnene fra Monte Carlo-simuleringen og deres betyd
             hypothesis_result += f"***Konklusjon***: {'Avvis' if u_p_value < 0.05 else 'Kan ***ikke*** avvise'} nullhypotesen for 0.05 signifikansnivå."
             
     else:
-        hypothesis_result = "#### Hypotese test\nVelg to alternativer for å gjennomføre en hypotesetest."
+        hypothesis_result = "#### Hypotesetest\nVelg to alternativer for å gjennomføre en hypotesetest."
 
     return Graf, tabell, hypothesis_result
 
