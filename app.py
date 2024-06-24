@@ -151,8 +151,8 @@ def update_graph(dropdown, data, data1):
     confidence_df_std = pd.DataFrame(confidence_data_std, index=['95% KI nedre', '95% KI øvre'])
     df1 = pd.concat([df1, confidence_df_std])
 
-    data4 = df1.reset_index().rename(columns={'index': 'Deskriptiv analyse (i tusen kroner)'}).round(2)
-    data4 = data4.applymap(lambda x: "{:,.0f}".format(x).replace(",", " ") if isinstance(x, (int, float)) else x)
+    data4 = df1.reset_index().rename(columns={'index': 'Deskriptiv analyse'}).round(2)
+    #data4 = data4.applymap(lambda x: "{:,.0f}".format(x).replace(",", " ") if isinstance(x, (int, float)) else x)
     
     tabell = [dbc.Col(dbc.Table.from_dataframe(data4, striped=True, bordered=True, hover=True), className='mb-auto')]
 
