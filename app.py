@@ -256,8 +256,8 @@ Oppsummering av de viktigste funnene fra Monte Carlo-simuleringen og deres betyd
             print(f"Fordelingen til {col2}:\n{pd.Series(col2_data).value_counts().head()}")
 
             # Normaliser data
-            col1_data = (col1_data - col1_data.mean()) / col1_data.std()
-            col2_data = (col2_data - col2_data.mean()) / col2_data.std()
+            #col1_data = (col1_data - col1_data.mean()) / col1_data.std()
+            #col2_data = (col2_data - col2_data.mean()) / col2_data.std()
 
             # t-test
             t_stat, p_value = stats.ttest_ind(col1_data, col2_data)
