@@ -14,10 +14,11 @@ import scipy.stats as stats
 import plotly.graph_objects as go
 from dash_bootstrap_templates import load_figure_template
 import plotly.io as pio
+import os
 
 load_figure_template('bootstrap')
 
-UPLOAD_FOLDER_ROOT = '/Uploads'
+UPLOAD_FOLDER_ROOT = 'Uploads'
 if not os.path.exists(UPLOAD_FOLDER_ROOT):
     os.makedirs(UPLOAD_FOLDER_ROOT)
     os.chmod(UPLOAD_FOLDER_ROOT, 0o777)
@@ -392,6 +393,9 @@ def callback_on_completion(status: du.UploadStatus):
                            Tiltakskostnader['Restverdi'].sum() +
                            Tiltakskostnader['Skattekostnad'].sum() +
                            Tiltakskostnader['Restverdi'].sum())
+            kostnader_tiltak = Tiltakskostnader['Investering'].sum() + Tiltakskostnader['Drift_vedlikehold'].sum() + Tiltakskostnader['Offentlige_overføringer'].sum() + Tiltakskostnader['Skatte_avgiftsinntekter'].sum()
+            kostnader_referanse = Referansekostnader['Drift_vedlikehold'].sum() + Referansekostnader['Offentlige_overføringer'].sum() + Referansekostnader['Skatte_avgiftsinntekter'].sum()
+            diff_kostnader = kostnader_tiltak - kostnader_referanse
             diff = TiltakNytte - ReferanseNytte
             correlation_matrix = np.array([[1, 0.05, 0.1, 0], [0.05, 1, 0, 0], [0.1, 0, 1, 0], [0, 0, 0, 1]])
             testing4 = pd.DataFrame(correlation_matrix)
@@ -440,7 +444,7 @@ def callback_on_completion(status: du.UploadStatus):
 
             def example_function(samples):
                 df = pd.DataFrame(samples)
-                df['nnv'] = TrafnytteTil * df[0] + (DogVTil - DogVRef) * df[1] + (UlykkerTil - UlykkerRef) * df[2] + Investring * df[3] + diff
+                df['nnv'] = (TrafnytteTil * df[0] + (DogVTil - DogVRef) * df[1] + (UlykkerTil - UlykkerRef) * df[2] + Investring * df[3] + diff) / diff_kostnader
                 df.columns = ['Trafikantnytte', 'Drift og vedlikehold', 'Ulykker', 'Investering', 'NNV']
                 return df['NNV']
 
