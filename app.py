@@ -139,14 +139,14 @@ def update_graph(dropdown, data, data1):
     df1 = df[dropdown].describe()
     df1.index = ['Antall simuleringer', 'Gjennomsnitt', 'Standardavvik', 'Minimumsverdi', '25% kvantil', '50% kvantil', '75% kvantil', 'Maksimumsverdi']
 
-    # Calculate 95% confidence intervals for each selected column
+    # 95% ki
     confidence_intervals_std = {}
     for col in dropdown:
         m_std, lower_std, upper_std = std_dev_confidence_interval(df[col])
         confidence_intervals_std[col] = {'Lower': lower_std, 'Upper': upper_std}
         # print(f"{col} - Mean: {m_std}, Std Dev: {np.std(df[col], ddof=1)}, 95% CI 1.96*std: [{lower_std}, {upper_std}]")
 
-    # Add confidence intervals to the dataframe
+    # KI for data
     confidence_data_std = {col: [confidence_intervals_std[col]['Lower'], confidence_intervals_std[col]['Upper']] for col in dropdown}
     confidence_df_std = pd.DataFrame(confidence_data_std, index=['95% KI nedre', '95% KI øvre'])
     df1 = pd.concat([df1, confidence_df_std])
@@ -158,7 +158,7 @@ def update_graph(dropdown, data, data1):
 
     fig1 = px.ecdf(df[dropdown], marginal='histogram')
 
-    # Add vertical lines for confidence intervals
+    # Vertikale linjer for KI
     colors = px.colors.qualitative.Plotly
     for i, col in enumerate(dropdown):
         lower = confidence_intervals_std[col]['Lower']
@@ -219,15 +219,15 @@ def update_graph(dropdown, data, data1):
     
 Oppsummering av de viktigste funnene fra Monte Carlo-simuleringen og deres betydning i forhold til problemet som ble studert.'''
 
-    # Hypothesis Test
+    # Hypotesetest
     hypothesis_result = ""
-    if len(dropdown) == 2:  # Perform test only if two columns are selected
+    if len(dropdown) == 2:  
         col1, col2 = dropdown
 
-        # Check for NaNs and infinities and remove them
+        # Sjekk for NaNs og infinities og fjern
         df = df.replace([np.inf, -np.inf], np.nan).dropna(subset=[col1, col2])
 
-        # Ensure columns are single-level and extract data
+        # Flate kolonner og ekstrakt
         if isinstance(df[col1], pd.DataFrame):
             col1_data = df[col1].values.flatten()
         else:
@@ -238,31 +238,31 @@ Oppsummering av de viktigste funnene fra Monte Carlo-simuleringen og deres betyd
         else:
             col2_data = df[col2]
 
-        # Debugging output
+        # Debugging 
         print(f"Shape of {col1}: {col1_data.shape}, Shape of {col2}: {col2_data.shape}")
         print(f"Head of {col1}:\n{col1_data[:5]}")
         print(f"Head of {col2}:\n{col2_data[:5]}")
 
-        # Ensure data in columns are variable
+        # Variable data
         if np.unique(col1_data).size == 1 or np.unique(col2_data).size == 1:
             hypothesis_result = f"The data in either {col1} or {col2} is not variable, hypothesis test cannot be performed."
         else:
-            # Print the means and standard deviations of the columns for debugging
+            # Debugging
             print(f"Snittet til {col1}: {col1_data.mean()}, Snittet til {col2}: {col2_data.mean()}")
             print(f"Standardavviket til {col1}: {col1_data.std()}, Standardavviket til {col2}: {col2_data.std()}")
             
-            # Check the distributions
+            # Debugging
             print(f"Fordelingen til {col1}:\n{pd.Series(col1_data).value_counts().head()}")
             print(f"Fordelingen til {col2}:\n{pd.Series(col2_data).value_counts().head()}")
 
-            # Normalize the data if necessary
+            # Normaliser data
             col1_data = (col1_data - col1_data.mean()) / col1_data.std()
             col2_data = (col2_data - col2_data.mean()) / col2_data.std()
 
-            # Perform the t-test
+            # t-test
             t_stat, p_value = stats.ttest_ind(col1_data, col2_data)
             
-            # Debugging output
+            # Debugging 
             print(f"t-statistikk: {t_stat}, p-verdi: {p_value}")
             
             hypothesis_result = f'''#### Hypotesetest(t-test)
@@ -280,7 +280,7 @@ Oppsummering av de viktigste funnene fra Monte Carlo-simuleringen og deres betyd
 
 ***Konklusjon***: {'Avvis' if p_value < 0.05 else 'Kan ***ikke*** avvise'} nullhypotesen for 0.05 signifikansnivå.
             '''
-            # Alternatively, use the Mann-Whitney U test for non-normal data
+            # Mann-Whitney U test for non-normal data
             u_stat, u_p_value = stats.mannwhitneyu(col1_data, col2_data)
             print(f"Mann Whitney U test: {u_stat}, p-value: {u_p_value}")
 
@@ -484,7 +484,7 @@ Parametrene som er variert i simuleringen er:
 - **Tolkning av resultater**: Diskuter implikasjonene av simulerte resultater og deres relevans for problemet som blir studert.
 - **Begrensninger og forbedringer**: Identifiser eventuelle begrensninger i simuleringen og mulige forbedringer for fremtidig arbeid.'''
 
-    # Remove all files in the upload directory
+    # Fjerne all data fra mappe
     for filename in os.listdir(UPLOAD_FOLDER_ROOT):
         file_path = os.path.join(UPLOAD_FOLDER_ROOT, filename)
         try:
