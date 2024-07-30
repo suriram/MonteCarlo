@@ -78,6 +78,9 @@ Simuleringen varierer trafikantnytten, drift og vedlikehold, investeringskostnad
             dbc.Col(dcc.Markdown(id='hypothesis-result'))  # Add this row to display the hypothesis test result
         ]),
         dbc.Row([
+            dbc.Col(dcc.Loading(id='loading-3', type='default', children=html.Div(id='Histo2')), width=12)
+        ]),
+        dbc.Row([
             dbc.Col(get_upload_component(id='dash-uploader'), className='m-5')
         ]),        
         dbc.Row([
@@ -88,7 +91,10 @@ Simuleringen varierer trafikantnytten, drift og vedlikehold, investeringskostnad
                         dbc.ModalHeader(dbc.ModalTitle("Monte Carlo simulering")),
                         dbc.ModalBody(dcc.Markdown('''Monte Carlo-simulering er en kraftig numerisk metode som brukes for å løse komplekse problemer ved hjelp av tilfeldige tall. Metoden er oppkalt etter det verdensberømte kasinoet i Monaco, og den involverer bruk av tilfeldig genererte tall for å modellere usikkerhet og utføre gjentatte eksperimenter
 Simuleringen utføres ved å gjenta eksperimentet tusenvis eller millioner av ganger, hver gang med tilfeldige variabler som innganger.
-Metoden er bredt anvendelig og brukes i en rekke fagområder, inkludert finans, ingeniørvitenskap, fysikk, biologi og datavitenskap. Eksempler på bruksområder inkluderer evaluering av risiko i investeringer, optimalisering av produksjonsprosesser, og forutsigelse av komplekse systemers atferd.
+                                                   
+Metoden er bredt anvendelig og brukes i en rekke fagområder, inkludert finans, ingeniørvitenskap, fysikk, biologi og datavitenskap. 
+Eksempler på bruksområder inkluderer evaluering av risiko i investeringer, optimalisering av produksjonsprosesser, og forutsigelse av komplekse systemers atferd.
+
 Monte Carlo-simulering gir muligheten til å håndtere usikkerhet og kompleksitet på en robust måte, og den har blitt en verdifull tilnærming for problemløsning i moderne vitenskap og industri.''')),
                         dbc.ModalFooter(dbc.Button("Lukk", id="close", className="ms-auto", n_clicks=0))
                     ], id="modal", size='xl', is_open=False),
@@ -118,14 +124,15 @@ def std_dev_confidence_interval(data):
 @app.callback(
     [Output('Histo', 'children'),
      Output('tabell', 'children'),
-     Output('hypothesis-result', 'children')],
+     Output('hypothesis-result', 'children'),
+     Output('Histo2', 'children')],
     [Input('dropdown', 'value'),
      State('memory', 'data'),
      State('memory1', 'data')]
 )
 def update_graph(dropdown, data, data1):
     if not dropdown:
-        return [], [], []
+        return [], [], [], []
 
     df = pd.DataFrame(data)
     Prosjekt = pd.DataFrame(data1)
@@ -214,7 +221,7 @@ def update_graph(dropdown, data, data1):
     Graf = [
         dbc.Col(dcc.Graph(id='graf1', figure=fig1), className='mb-4'),
     ]
-
+    
     konklusjon = '''### Konklusjon
     
 Oppsummering av de viktigste funnene fra Monte Carlo-simuleringen og deres betydning i forhold til problemet som ble studert.'''
@@ -223,7 +230,9 @@ Oppsummering av de viktigste funnene fra Monte Carlo-simuleringen og deres betyd
     hypothesis_result = ""
     if len(dropdown) == 2:  
         col1, col2 = dropdown
-
+        
+        
+        # print(figdata.head)
         # Sjekk for NaNs og infinities og fjern
         df = df.replace([np.inf, -np.inf], np.nan).dropna(subset=[col1, col2])
 
@@ -237,13 +246,8 @@ Oppsummering av de viktigste funnene fra Monte Carlo-simuleringen og deres betyd
             col2_data = df[col2].values.flatten()
         else:
             col2_data = df[col2]
-
-        # Debugging 
-        print(f"Shape of {col1}: {col1_data.shape}, Shape of {col2}: {col2_data.shape}")
-        print(f"Head of {col1}:\n{col1_data[:5]}")
-        print(f"Head of {col2}:\n{col2_data[:5]}")
-
-        # Variable data
+            
+            # Variable data
         if np.unique(col1_data).size == 1 or np.unique(col2_data).size == 1:
             hypothesis_result = f"The data in either {col1} or {col2} is not variable, hypothesis test cannot be performed."
         else:
@@ -260,37 +264,38 @@ Oppsummering av de viktigste funnene fra Monte Carlo-simuleringen og deres betyd
             #col2_data = (col2_data - col2_data.mean()) / col2_data.std()
 
             # t-test
-            t_stat, p_value = stats.ttest_ind(col1_data, col2_data)
+            t_stat, p_value = stats.ttest_ind(col1_data, col2_data, equal_var=False)
             
             # Debugging 
             print(f"t-statistikk: {t_stat}, p-verdi: {p_value}")
+            figdata = pd.concat([col1_data,col2_data],axis=1)
+
+            fig2 = px.box(figdata) 
+            fig2.update_layout(
+            xaxis_title='',
+            yaxis_title='NNB',
+            )   
+            Graf2 =[
+                dbc.Col(dcc.Graph(id='graf2', figure=fig2), className='mb-4'),
+            ]
             
-            hypothesis_result = f'''#### Hypotesetest(t-test)
+            
+
+            hypothesis_result = f'''#### Hypotesetest (Welch T-test)
 **Nullhypotese t-test(H0)**: Det er ingen forskjell i snittet mellom {col1} og {col2}.
 
-**Nullhypotese Mann Whitney U test(H0)**: Det er ingen forskjell i rangsummen mellom {col1} og {col2}.  
-
 **Alternativ hypotese t-test(H1)**: Det er en signifikant forskjell i snittet mellom {col1} og {col2}.  
-
-**Alternativ hypotese Mann Whitney U test(H1)**: Det er en signifikant forskjell i rangsummen mellom {col1} og {col2}. 
-
 
 **t-statistic**: {t_stat:.4e}  
 **p-value**: {p_value:.2e}  
 
 ***Konklusjon***: {'Avvis' if p_value < 0.05 else 'Kan ***ikke*** avvise'} nullhypotesen for 0.05 signifikansnivå.
             '''
-            # Mann-Whitney U test for non-normal data
-            u_stat, u_p_value = stats.mannwhitneyu(col1_data, col2_data)
-            print(f"Mann Whitney U test: {u_stat}, p-value: {u_p_value}")
-
-            hypothesis_result += f'\n\n**Mann Whitney U test**: {u_stat:.4f}, p-value: {u_p_value:.4e}\n\n'
-            hypothesis_result += f"***Konklusjon***: {'Avvis' if u_p_value < 0.05 else 'Kan ***ikke*** avvise'} nullhypotesen for 0.05 signifikansnivå."
-            
+                        
     else:
         hypothesis_result = "#### Hypotesetest\nVelg to alternativer for å gjennomføre en hypotesetest."
-
-    return Graf, tabell, hypothesis_result
+        Graf2 = []
+    return Graf, tabell, hypothesis_result, Graf2
 
 app.layout = get_app_layout
 
@@ -400,7 +405,7 @@ def callback_on_completion(status: du.UploadStatus):
             correlation_matrix = np.array([[1, 0.05, 0.1, 0], [0.05, 1, 0, 0], [0.1, 0, 1, 0], [0, 0, 0, 1]])
             testing4 = pd.DataFrame(correlation_matrix)
             std_dev = np.array([1, 1, 1, 1])
-            num_samples = 50000
+            num_samples = 51387
 
             def show_func(d):
                 funksjoner = {
