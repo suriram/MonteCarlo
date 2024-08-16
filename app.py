@@ -15,6 +15,8 @@ import plotly.graph_objects as go
 from dash_bootstrap_templates import load_figure_template
 import plotly.io as pio
 import os
+import plotly.figure_factory as ff
+#import matplotlib.pyplot as plt
 
 load_figure_template('bootstrap')
 
@@ -49,6 +51,8 @@ def get_upload_component(id):
         upload_id=uuid.uuid1(),  # Unique session id
     )
 
+
+
 def get_app_layout():
     return dbc.Container([
         dbc.Alert(["Dette er en testversjon. Bruk resultatene med omhu. Tilbakemeldinger? Send en ", 
@@ -63,22 +67,32 @@ def get_app_layout():
 Simuleringen varierer trafikantnytten, drift og vedlikehold, investeringskostnader og ulykkeskostnader.''', className='text-body mt-4', id='text-body'))
         ]),
         dbc.Row([
+            dcc.Store(id='memory2',storage_type ='memory'),
             dbc.Col(dcc.Dropdown(options={}, multi=True, id='dropdown', placeholder='Velg alternativ'), className='mb-auto')
         ]),
         dbc.Row([
-            dbc.Col(dcc.Loading(id='loading-1', type='default', children=html.Div(id='tabell')), width=12)
-        ]),
-        dbc.Row([
-            dbc.Col(dcc.Loading(id='loading-2', type='default', children=html.Div(id='Histo')), width=12)
+            dbc.Col(
+                dbc.Collapse(
+                    dbc.Accordion([
+                        dbc.AccordionItem([
+                            dbc.Col(dcc.Loading(id='loading-1', type='default', children=html.Div(id='tabell')), width=12),
+                            dbc.Col(dcc.Loading(id='loading-2', type='default', children=html.Div(id='Histo')), width=12),
+                        ], title="NNV (Nettonåverdi)"),
+                        dbc.AccordionItem([
+                            dbc.Col(dcc.Loading(id='loading-3', type='default', children=html.Div(id='tabell_nnb')), width=12),
+                            dbc.Col(dcc.Loading(id='loading-4', type='default', children=html.Div(id='Histo2')), width=12),
+                        ], title="NNB (Nettonåverdi pr budsjettkrone)"),
+                    ], always_open=True),
+                    id='accordion-collapse',
+                    is_open=False
+                )
+            )
         ]),
         dbc.Row([
             dbc.Col(dcc.Markdown(id='text-body2', className='text-body mt-4'))
         ]),
         dbc.Row([
             dbc.Col(dcc.Markdown(id='hypothesis-result'))  # Add this row to display the hypothesis test result
-        ]),
-        dbc.Row([
-            dbc.Col(dcc.Loading(id='loading-3', type='default', children=html.Div(id='Histo2')), width=12)
         ]),
         dbc.Row([
             dbc.Col(get_upload_component(id='dash-uploader'), className='m-5')
@@ -104,6 +118,17 @@ Monte Carlo-simulering gir muligheten til å håndtere usikkerhet og kompleksite
     ])
 
 @app.callback(
+    Output('accordion-collapse', 'is_open'),
+    [Input('dropdown', 'value')],
+    [State('accordion-collapse', 'is_open')]
+)
+def toggle_accordion(dropdown_value, is_open):
+    if dropdown_value and not is_open:
+        return True
+    return is_open
+
+
+@app.callback(
     Output("modal", "is_open"),
     [Input("open", "n_clicks"), Input("close", "n_clicks")],
     [State("modal", "is_open")],
@@ -124,18 +149,24 @@ def std_dev_confidence_interval(data):
 @app.callback(
     [Output('Histo', 'children'),
      Output('tabell', 'children'),
-     Output('hypothesis-result', 'children'),
-     Output('Histo2', 'children')],
+     Output('Histo2', 'children'),
+     Output('tabell_nnb', 'children'),
+     Output('hypothesis-result', 'children')],
     [Input('dropdown', 'value'),
      State('memory', 'data'),
-     State('memory1', 'data')]
+     State('memory1', 'data'),
+     State('memory2','data')]
 )
-def update_graph(dropdown, data, data1):
+def update_graph(dropdown, data, data2, data3):
     if not dropdown:
-        return [], [], [], []
+        return [], [], [], [], [] 
 
     df = pd.DataFrame(data)
-    Prosjekt = pd.DataFrame(data1)
+    #print('df1 head',df.head())
+    Prosjekt = pd.DataFrame(data2)
+    #print(Prosjekt.head())
+    df2 = pd.DataFrame(data3)
+    print('df2 head',df2.head())
     Navn = Prosjekt.iat[0, 1]
     Kalkrente = Prosjekt.iat[0, 3]
     Prisnivå = Prosjekt.iat[0, 4]
@@ -145,25 +176,50 @@ def update_graph(dropdown, data, data1):
 
     df1 = df[dropdown].describe()
     df1.index = ['Antall simuleringer', 'Gjennomsnitt', 'Standardavvik', 'Minimumsverdi', '25% kvantil', '50% kvantil', '75% kvantil', 'Maksimumsverdi']
+    df_nnb = pd.DataFrame(data3)
+    df_nnb1 = df_nnb[dropdown].describe()
+    df_nnb1.index = ['Antall simuleringer', 'Gjennomsnitt', 'Standardavvik', 'Minimumsverdi', '25% kvantil', '50% kvantil', '75% kvantil', 'Maksimumsverdi']
 
     # 95% ki
     confidence_intervals_std = {}
+    confidence_intervals_std_nnb = {}
     for col in dropdown:
         m_std, lower_std, upper_std = std_dev_confidence_interval(df[col])
         confidence_intervals_std[col] = {'Lower': lower_std, 'Upper': upper_std}
-        # print(f"{col} - Mean: {m_std}, Std Dev: {np.std(df[col], ddof=1)}, 95% CI 1.96*std: [{lower_std}, {upper_std}]")
+        
+        m_std_nnb, lower_std_nnb, upper_std_nnb = std_dev_confidence_interval(df_nnb[col])
+        confidence_intervals_std_nnb[col] = {'Lower': lower_std_nnb, 'Upper': upper_std_nnb}
+
 
     # KI for data
     confidence_data_std = {col: [confidence_intervals_std[col]['Lower'], confidence_intervals_std[col]['Upper']] for col in dropdown}
     confidence_df_std = pd.DataFrame(confidence_data_std, index=['95% KI nedre', '95% KI øvre'])
     df1 = pd.concat([df1, confidence_df_std])
 
-    data4 = df1.reset_index().rename(columns={'index': 'Deskriptiv analyse(NNB)'}).round(2)
-    #data4 = data4.applymap(lambda x: "{:,.0f}".format(x).replace(",", " ") if isinstance(x, (int, float)) else x)
+    confidence_data_std_nnb = {col: [confidence_intervals_std_nnb[col]['Lower'], confidence_intervals_std_nnb[col]['Upper']] for col in dropdown}
+    confidence_df_std_nnb = pd.DataFrame(confidence_data_std_nnb, index=['95% KI nedre', '95% KI øvre'])
+    df_nnb1 = pd.concat([df_nnb1, confidence_df_std_nnb])
     
-    tabell = [dbc.Col(dbc.Table.from_dataframe(data4, striped=True, bordered=True, hover=True), className='mb-auto')]
+    df1 = df1.map(lambda x: format_with_space(x) if isinstance(x, (int, float)) else x)
+    df_nnb1.loc['Antall simuleringer'] = df_nnb1.loc['Antall simuleringer'].apply(lambda x: format_with_space(x) if isinstance(x, (int, float)) else x)
+    df_nnb1 = df_nnb1.applymap(lambda x: round(x, 2) if isinstance(x, (int, float)) else x)
 
+   
+
+    tabell = dbc.Table.from_dataframe(df1.reset_index().rename(columns={'index': 'Deskriptiv analyse (NNV)'}).round(2), striped=True, bordered=True, hover=True)
+    tabell_nnb = dbc.Table.from_dataframe(df_nnb1.reset_index().rename(columns={'index': 'Deskriptiv analyse (NNB)'}).round(2), striped=True, bordered=True, hover=True)
+
+    
+    #tabell = [dbc.Col(dbc.Table.from_dataframe(data4, striped=True, bordered=True, hover=True), className='mb-auto')]
     fig1 = px.ecdf(df[dropdown], marginal='histogram')
+    """for i, col in enumerate(dropdown):
+        lower = confidence_intervals_std[col]['Lower']
+        upper = confidence_intervals_std[col]['Upper']
+        fig1.add_shape(type="line", x0=lower, y0=0, x1=lower, y1=1, line=dict(color='red', dash="dash"))
+        fig1.add_shape(type="line", x0=upper, y0=0, x1=upper, y1=1, line=dict(color='green', dash="dash"))"""
+
+    
+    #fig1 = px.ecdf(df[dropdown], marginal='histogram')
 
     # Vertikale linjer for KI
     colors = px.colors.qualitative.Plotly
@@ -218,9 +274,71 @@ def update_graph(dropdown, data, data1):
         legend=dict(yanchor='bottom', y=-0.2, orientation='h', xanchor='left', x=0,),
         hovermode="x unified"
     )
-    Graf = [
+    # Graphs for NNB
+    fig2 = px.ecdf(df_nnb[dropdown], marginal='histogram')
+    """for i, col in enumerate(dropdown):
+        lower_nnb = confidence_intervals_std_nnb[col]['Lower']
+        upper_nnb = confidence_intervals_std_nnb[col]['Upper']
+        fig2.add_shape(type="line", x0=lower_nnb, y0=0, x1=lower_nnb, y1=1, line=dict(color='red', dash="dash"))
+        fig2.add_shape(type="line", x0=upper_nnb, y0=0, x1=upper_nnb, y1=1, line=dict(color='green', dash="dash"))"""
+    colors = px.colors.qualitative.Plotly
+    for i, col in enumerate(dropdown):
+        lower_nnb = confidence_intervals_std_nnb[col]['Lower']
+        upper_nnb = confidence_intervals_std_nnb[col]['Upper']
+        color = colors[i % len(colors)]
+        fig2.add_shape(
+            type="line",
+            x0=lower_nnb,
+            y0=0,
+            x1=lower_nnb,
+            y1=1,
+            line=dict(color=color, width=2, dash="dashdot"),
+            name=f"95% KI nedre {col}"
+        )
+        fig2.add_trace(
+            go.Scatter(
+                x=[lower_nnb], y=[0.5],
+                mode="markers",
+                marker=dict(color=color, size=10, symbol="line-ns-open"),
+                showlegend=False,
+                hoverinfo="text",
+                hovertext=f"95% KI nedre, {col}: {lower_nnb:,.0f},- {Prisnivå} Kroner"
+            )
+        )
+        fig2.add_shape(
+            type="line",
+            x0=upper_nnb,
+            y0=0,
+            x1=upper_nnb,
+            y1=1,
+            line=dict(color=color, width=2, dash="dashdot"),
+            name=f"95% KI øvre {col}"
+        )
+        fig2.add_trace(
+            go.Scatter(
+                x=[upper_nnb], y=[0.5],
+                mode="markers",
+                marker=dict(color=color, size=10, symbol="line-ns-open"),
+                showlegend=False,
+                hoverinfo="text",
+                hovertext=f"95% KI øvre, {col}: {upper_nnb:,.0f},- {Prisnivå} Kroner"
+            )
+        )
+
+    fig2.update_layout(
+        xaxis_title='%s Kroner' % Prisnivå,
+        yaxis_title='Sannsynlighet',
+        legend_title='',
+        height=650,
+        legend=dict(yanchor='bottom', y=-0.2, orientation='h', xanchor='left', x=0,),
+        hovermode="x unified"
+    )
+
+    Graf = dcc.Graph(id='graf1', figure=fig1)
+    Graf_nnb = dcc.Graph(id='graf2', figure=fig2)
+    """Graf = [
         dbc.Col(dcc.Graph(id='graf1', figure=fig1), className='mb-4'),
-    ]
+    ]"""
     
     konklusjon = '''### Konklusjon
     
@@ -230,72 +348,165 @@ Oppsummering av de viktigste funnene fra Monte Carlo-simuleringen og deres betyd
     hypothesis_result = ""
     if len(dropdown) == 2:  
         col1, col2 = dropdown
-        
-        
-        # print(figdata.head)
-        # Sjekk for NaNs og infinities og fjern
-        df = df.replace([np.inf, -np.inf], np.nan).dropna(subset=[col1, col2])
+        sample1 = df[col1]
+        sample2 = df[col2]
+        shapiro_test_sample1 = stats.shapiro(sample1)
+        shapiro_test_sample2 = stats.shapiro(sample2)
 
-        # Flate kolonner og ekstrakt
-        if isinstance(df[col1], pd.DataFrame):
-            col1_data = df[col1].values.flatten()
+        ks_test_sample1 = stats.kstest(sample1, 'norm', args=(np.mean(sample1), np.std(sample1)))
+        ks_test_sample2 = stats.kstest(sample2, 'norm', args=(np.mean(sample2), np.std(sample2)))
+        print(f"Shapiro-Wilk Test Sample 1: Statistic={shapiro_test_sample1[0]}, p-value={shapiro_test_sample1[1]}")
+        if shapiro_test_sample1[1] > 0.05:
+            normsh1='følger en normalfordeling'
+            print("Sample 1 follows a normal distribution (fail to reject H0).")
         else:
-            col1_data = df[col1]
-        
-        if isinstance(df[col2], pd.DataFrame):
-            col2_data = df[col2].values.flatten()
+            normsh1='følger ikke en normalfordeling'
+            print("Sample 1 does not follow a normal distribution (reject H0).")
+
+        print(f"Shapiro-Wilk Test Sample 2: Statistic={shapiro_test_sample2[0]}, p-value={shapiro_test_sample2[1]}")
+        if shapiro_test_sample2[1] > 0.05:
+            normsh2='følger en normalfordeling'
+            print("Sample 2 follows a normal distribution (fail to reject H0).")
         else:
-            col2_data = df[col2]
-            
-            # Variable data
-        if np.unique(col1_data).size == 1 or np.unique(col2_data).size == 1:
-            hypothesis_result = f"The data in either {col1} or {col2} is not variable, hypothesis test cannot be performed."
+            normsh2='følger ikke en normalfordeling'
+            print("Sample 2 does not follow a normal distribution (reject H0).")
+
+        print(f"Kolmogorov-Smirnov Test Sample 1: Statistic={ks_test_sample1[0]}, p-value={ks_test_sample1[1]}")
+        if ks_test_sample1[1] > 0.05:
+            normks1='følger en normalfordeling'
+            print("Sample 1 follows a normal distribution (fail to reject H0).")
         else:
-            # Debugging
-            print(f"Snittet til {col1}: {col1_data.mean()}, Snittet til {col2}: {col2_data.mean()}")
-            print(f"Standardavviket til {col1}: {col1_data.std()}, Standardavviket til {col2}: {col2_data.std()}")
-            
-            # Debugging
-            print(f"Fordelingen til {col1}:\n{pd.Series(col1_data).value_counts().head()}")
-            print(f"Fordelingen til {col2}:\n{pd.Series(col2_data).value_counts().head()}")
+            normks1='følger ikke en normalfordeling'
+            print("Sample 1 does not follow a normal distribution (reject H0).")
 
-            # Normaliser data
-            #col1_data = (col1_data - col1_data.mean()) / col1_data.std()
-            #col2_data = (col2_data - col2_data.mean()) / col2_data.std()
+        print(f"Kolmogorov-Smirnov Test Sample 2: Statistic={ks_test_sample2[0]}, p-value={ks_test_sample2[1]}")
+        if ks_test_sample2[1] > 0.05:
+            normks2='følger en normalfordeling'
+            print("Sample 2 follows a normal distribution (fail to reject H0).")
+        else:
+            normks2='følger ikke en normalfordeling'
+            print("Sample 2 does not follow a normal distribution (reject H0).")
+        normal_sample1 = (shapiro_test_sample1[1] > 0.05) and (ks_test_sample1[1] > 0.05)
+        normal_sample2 = (shapiro_test_sample2[1] > 0.05) and (ks_test_sample2[1] > 0.05)
 
-            # t-test
-            t_stat, p_value = stats.ttest_ind(col1_data, col2_data, equal_var=False)
-            
-            # Debugging 
-            print(f"t-statistikk: {t_stat}, p-verdi: {p_value}")
-            figdata = pd.concat([col1_data,col2_data],axis=1)
+        #if normal_sample1 and normal_sample2:
+            # Sjekk for lik varians
+        equal_var = np.var(sample1) == np.var(sample2)
 
-            fig2 = px.box(figdata) 
-            fig2.update_layout(
-            xaxis_title='',
-            yaxis_title='NNB',
-            )   
-            Graf2 =[
-                dbc.Col(dcc.Graph(id='graf2', figure=fig2), className='mb-4'),
-            ]
-            
-            
+        # t-test
+        if equal_var:
+            t_stat, p_value = stats.ttest_ind(sample1, sample2, equal_var=True)
+        else:
+            t_stat, p_value = stats.ttest_ind(sample1, sample2, equal_var=False)
 
-            hypothesis_result = f'''#### Hypotesetest (Welch T-test)
+        # Cohen's d
+        mean1 = np.mean(sample1)
+        mean2 = np.mean(sample2)
+        std1 = np.std(sample1, ddof=1)
+        std2 = np.std(sample2, ddof=1)
+
+        n1 = len(sample1)
+        n2 = len(sample2)
+
+        pooled_std = np.sqrt(((n1 - 1) * std1**2 + (n2 - 1) * std2**2) / (n1 + n2 - 2))
+        cohen_d = (mean1 - mean2) / pooled_std
+        cohen_d = cohen_d.round(4)
+
+        # KI for gjennomsnitt
+        conf_interval_1 = stats.t.interval(0.95, n1 - 1, loc=mean1, scale=std1/np.sqrt(n1))
+        conf_interval_2 = stats.t.interval(0.95, n2 - 1, loc=mean2, scale=std2/np.sqrt(n2))
+
+        # KI for mean difference
+        mean_diff = mean1 - mean2
+        se_diff = np.sqrt((std1**2 / n1) + (std2**2 / n2))
+        conf_interval_diff = stats.t.interval(0.95, df=min(n1, n2) - 1, loc=mean_diff, scale=se_diff)
+
+        print(f"\nt-statistic: {t_stat}")
+        print(f"p-value: {p_value}")
+        print(f"Effect Size (Cohen's d): {cohen_d}")
+        # Print conclusion based on Cohen's d
+        if abs(cohen_d) < 0.2:
+            effect_size_conclusion = "Dette indikerer en veldig liten effektstørrelse."
+        elif abs(cohen_d) < 0.5:
+            effect_size_conclusion = "Dette indikerer en liten effektstørrelse."
+        elif abs(cohen_d) < 0.8:
+            effect_size_conclusion = "Dette indikerer en middels effektstørrelse."
+        else:
+            effect_size_conclusion = "Dette indikerer en stor effektstørrelse."
+
+        print(equal_var)
+        hypothesis_result = f'''#### Hypotesetest {'(T test)' if equal_var else '(Welch t test)'} 
+            
 **Nullhypotese t-test(H0)**: Det er ingen forskjell i snittet mellom {col1} og {col2}.
 
 **Alternativ hypotese t-test(H1)**: Det er en signifikant forskjell i snittet mellom {col1} og {col2}.  
 
 **t-statistic**: {t_stat:.4e}  
+**p-value**: {p_value:.2e} 
+  
+
+***Konklusjon***: {'Avvis' if p_value < 0.05 else 'Kan ***ikke*** avvise'} nullhypotesen for 0.05 signifikansnivå.
+        '''
+
+        """else:
+            # Mann-Whitney U test
+            n1 = len(sample1)
+            n2 = len(sample2)
+            r = 1 - (2 * u_stat) / (n1 * n2)
+            if abs(r) < 0.1:
+                konkr = "Dette indikerer en veldig liten effektstørrelse."
+            elif abs(r) < 0.3:
+                konkr = "Dette indikerer en liten effektstørrelse."
+            elif abs(r) < 0.5:
+                konkr = "Dette indikerer en middels effektstørrelse."
+            else:
+                konkr = "Dette indikerer en stor effektstørrelse."
+            u_stat, p_value = stats.mannwhitneyu(sample1, sample2, alternative='two-sided')
+            hypothesis_result = f'''#### Hypotesetest (Mann-Whitney U test)
+Det ble gjort en Mann Whitney U test fordi et eller begge alternativer ser ikke ut til å være normalfordelte:
+
+***Shapiro test:*** {col1} {normsh1}  
+***Shapiro test:*** {col2} {normsh2}  
+***Kolmogorov-Smirnov Test:*** {col1} {normks1}  
+***Kolmogorov-Smirnov Test:*** {col2} {normks2}  
+
+**Nullhypotese t-test(H0)**: Det er ingen forskjell i rangsummen mellom {col1} og {col2}.
+
+**Alternativ hypotese t-test(H1)**: Det er en signifikant forskjell i rangsummen mellom {col1} og {col2}.  
+
+**t-statistic**: {u_stat:.4e}  
 **p-value**: {p_value:.2e}  
 
 ***Konklusjon***: {'Avvis' if p_value < 0.05 else 'Kan ***ikke*** avvise'} nullhypotesen for 0.05 signifikansnivå.
-            '''
+        '''
+
+            print("\nMann-Whitney U Test")
+            print(f"U-statistic: {u_stat}")
+            print(f"p-value: {p_value}")"""
+
+        sa1=str(col1)
+        sa2=str(col2)
+        fig2 = ff.create_distplot([sample2,sample1], group_labels=[sa1, sa2], show_hist=False, show_rug=False)
+        fig2.update_layout(
+        xaxis_title='Verdi' % Prisnivå,
+        yaxis_title='Tetthet',
+        legend_title='',
+        height=650,
+        legend=dict(yanchor='bottom', y=-0.2, orientation='h', xanchor='left', x=0,),
+        hovermode="x unified")
+   
+        Graf2 =[
+            dbc.Col(dcc.Graph(id='graf2', figure=fig2), className='mb-4'),
+        ]
+        
+        
+
+        
                         
     else:
         hypothesis_result = "#### Hypotesetest\nVelg to alternativer for å gjennomføre en hypotesetest."
         Graf2 = []
-    return Graf, tabell, hypothesis_result, Graf2
+    return Graf, tabell, Graf_nnb, tabell_nnb, hypothesis_result
 
 app.layout = get_app_layout
 
@@ -304,11 +515,13 @@ app.layout = get_app_layout
             Output("memory", "data"),
             Output("memory1", "data"),
             Output("text-body", "children"),
-            Output("text-body2", 'children')),
+            Output("text-body2", 'children'),
+            Output("memory2", "data")),
 )
 def callback_on_completion(status: du.UploadStatus):
     pd.set_option('future.no_silent_downcasting', True)    
     simulations = []
+    simb = []
     prosjekter = []
     Sti = status.uploaded_files[0]
     print(Sti)
@@ -405,7 +618,7 @@ def callback_on_completion(status: du.UploadStatus):
             correlation_matrix = np.array([[1, 0.05, 0.1, 0], [0.05, 1, 0, 0], [0.1, 0, 1, 0], [0, 0, 0, 1]])
             testing4 = pd.DataFrame(correlation_matrix)
             std_dev = np.array([1, 1, 1, 1])
-            num_samples = 51387
+            num_samples = 50000
 
             def show_func(d):
                 funksjoner = {
@@ -449,25 +662,45 @@ def callback_on_completion(status: du.UploadStatus):
 
             def example_function(samples):
                 df = pd.DataFrame(samples)
-                df['nnv'] = (TrafnytteTil * df[0] + (DogVTil - DogVRef) * df[1] + (UlykkerTil - UlykkerRef) * df[2] + Investring * df[3] + diff) / diff_kostnader
-                df.columns = ['Trafikantnytte', 'Drift og vedlikehold', 'Ulykker', 'Investering', 'NNV']
-                return df['NNV']
+                df['nnv'] = (TrafnytteTil * df[0] + (DogVTil - DogVRef) * df[1] + (UlykkerTil - UlykkerRef) * df[2] + Investring * df[3] + diff)
+                df['nnb'] = (TrafnytteTil * df[0] + (DogVTil - DogVRef) * df[1] + (UlykkerTil - UlykkerRef) * df[2] + Investring * df[3] + diff) / diff_kostnader
+                df.columns = ['Trafikantnytte', 'Drift og vedlikehold', 'Ulykker', 'Investering', 'NNV', 'NNB']
+                return df[['NNV','NNB']]
 
             cholesky_matrix = cholesky_decomposition_with_correlation(correlation_matrix, std_dev)
             correlated_samples = generate_correlated_samples(num_samples, cholesky_matrix)
-            dfnnv = example_function(correlated_samples)
+            dfnn = example_function(correlated_samples)
+            #print(dfnn)
+            dfnn = pd.DataFrame(dfnn)
+            dfnnv = dfnn['NNV']
+            #
             dfnnv = pd.DataFrame(dfnnv)
+            dfnnb = dfnn['NNB']
+            #print(dfnnb)
+            dfnnb = pd.DataFrame(dfnnb)
             dfnnv = dfnnv.rename(columns={"NNV": "Prosjekt: {}, Utbyggingsplan: {} ".format(prosjetnavn, plannavn)})
+            print(dfnnv)
+            dfnnb = dfnnb.rename(columns={"NNB": "Prosjekt: {}, Utbyggingsplan: {} ".format(prosjetnavn, plannavn)})
+            #print(dfnnb)
             simulations.append(dfnnv)
+            
+            simb.append(dfnnb)
             KI = std_dev_confidence_interval(dfnnv)
+            KIb = std_dev_confidence_interval(dfnnb)
             # print(KI)
 
     simulations = pd.concat(simulations, axis=1)
+    #print(simulations)
+    simulationsb = pd.concat(simb, axis=1)
+    print(simulationsb)
     antall = format_with_space(num_samples)
     li = simulations.columns
     lis = li
     d1 = dict(zip(li, lis))
     simulations = simulations.to_dict()
+    simulationsb = simulationsb.to_dict()
+    print('nnv data',simulations.keys())
+    print('nnb data:', simulationsb.keys())
     Prosjekt = ProsjektPlan.to_dict()
     Bjarne = html.H4('{}'.format(Navn))
     Kjell = '''Prisnivået er {} og det er benyttet en kalkulasjonsrente på {} prosent. Ansvarlig for EFFEKTbasen er {}. Det er gjort {} simuleringer.
@@ -500,7 +733,7 @@ Parametrene som er variert i simuleringen er:
         except Exception as e:
             print(f'Failed to delete {file_path}. Reason: {e}')
 
-    return d1, simulations, Prosjekt, Kjell, bobkaare
+    return d1, simulations, Prosjekt, Kjell, bobkaare, simulationsb
 
 if __name__ == '__main__':
     app.run_server(debug=True)
