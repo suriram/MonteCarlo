@@ -47,7 +47,7 @@ def get_upload_component(id):
         cancel_button=True,
         max_files=1,
         max_file_size=2000,  # 2000 Mb
-        filetypes=['MDB', 'mdb'],
+        filetypes=['MDB', 'mdb', 'accdb'],
         upload_id=uuid.uuid1(),  # Unique session id
     )
 
@@ -613,7 +613,7 @@ def callback_on_completion(status: du.UploadStatus):
                            Tiltakskostnader['Restverdi'].sum())
             kostnader_tiltak = Tiltakskostnader['Investeringer'].sum() + Tiltakskostnader['Drift_vedlikehold'].sum() + Tiltakskostnader['Offentlige_overføringer'].sum() + Tiltakskostnader['Skatte_avgiftsinntekter'].sum()
             kostnader_referanse = Referansekostnader['Drift_vedlikehold'].sum() + Referansekostnader['Offentlige_overføringer'].sum() + Referansekostnader['Skatte_avgiftsinntekter'].sum()
-            diff_kostnader = kostnader_tiltak - kostnader_referanse
+            diff_kostnader = abs(kostnader_tiltak - kostnader_referanse)
             diff = TiltakNytte - ReferanseNytte
             correlation_matrix = np.array([[1, 0.05, 0.1, 0], [0.05, 1, 0, 0], [0.1, 0, 1, 0], [0, 0, 0, 1]])
             testing4 = pd.DataFrame(correlation_matrix)
