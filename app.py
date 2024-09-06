@@ -18,6 +18,11 @@ import os
 import plotly.figure_factory as ff
 #import matplotlib.pyplot as plt
 
+lower = None
+upper = None
+lower_nnb = None
+upper_nnb = None
+
 load_figure_template('bootstrap')
 
 UPLOAD_FOLDER_ROOT = 'Uploads'
@@ -63,8 +68,16 @@ def get_app_layout():
         ]),
         dbc.Row([
             dcc.Store(id='memory1', storage_type='memory'),
-            dbc.Col(dcc.Markdown('''Her kan du gjøre Monte Carlo simulering av EFFEKTdatabaser. __Last opp EFFEKTdatabasen nedenfor.__ 
-Simuleringen varierer trafikantnytten, drift og vedlikehold, investeringskostnader og ulykkeskostnader.''', className='text-body mt-4', id='text-body'))
+            dbc.Col(dcc.Markdown('''### Introduksjon:
+Denne applikasjonen lar deg utføre Monte Carlo-simuleringer på EFFEKT-databaser. Ved å laste opp en database og kjøre simuleringer, kan du evaluere prosjektalternativer basert på en rekke variabler som påvirker kostnader, nytte og risiko. Simuleringen tar hensyn til usikkerheter i faktorer som **trafikantnytte**, **drift og vedlikehold**, **ulykkeskostnader** og **investeringskostnader** for å gi et estimat over nettonåverdi (NNV) og nettonåverdi per budsjettkrone (NNB).
+
+Ved å utføre tusenvis av simuleringer med varierende inngangsdata, gir modellen et bilde av prosjektets usikkerheter og potensielle utfall. Dette gir beslutningstakere bedre innsikt i hvordan ulike faktorer påvirker de økonomiske konsekvensene av prosjektet.
+
+#### Slik bruker du applikasjonen:
+1. Last opp en EFFEKT-database.
+2. Velg et eller flere prosjektalternativer fra nedtrekksmenyen.
+3. Se resultatene for Nettonåverdi (NNV) og Nettonåverdi per budsjettkrone (NNB) i form av tabeller og grafer.
+''', className='text-body mt-4', id='text-body'))
         ]),
         dbc.Row([
             dcc.Store(id='memory2',storage_type ='memory'),
@@ -151,7 +164,8 @@ def std_dev_confidence_interval(data):
      Output('tabell', 'children'),
      Output('Histo2', 'children'),
      Output('tabell_nnb', 'children'),
-     Output('hypothesis-result', 'children')],
+     Output('hypothesis-result', 'children'),
+     Output("text-body2", 'children')],
     [Input('dropdown', 'value'),
      State('memory', 'data'),
      State('memory1', 'data'),
@@ -159,11 +173,12 @@ def std_dev_confidence_interval(data):
 )
 def update_graph(dropdown, data, data2, data3):
     if not dropdown:
-        return [], [], [], [], [] 
+        return [], [], [], [], [], [] 
 
     df = pd.DataFrame(data)
     #print('df1 head',df.head())
     Prosjekt = pd.DataFrame(data2)
+    
     #print(Prosjekt.head())
     df2 = pd.DataFrame(data3)
     print('df2 head',df2.head())
@@ -339,10 +354,22 @@ def update_graph(dropdown, data, data2, data3):
     """Graf = [
         dbc.Col(dcc.Graph(id='graf1', figure=fig1), className='mb-4'),
     ]"""
+    fupper= upper.round(-1)
+    fupper= format_with_space(upper)
+    flower = lower.round(-1)
+    flower = format_with_space(lower)
+    fupper_nnb = upper_nnb.round(2)
     
-    konklusjon = '''### Konklusjon
+    flower_nnb = lower_nnb.round(2)
     
-Oppsummering av de viktigste funnene fra Monte Carlo-simuleringen og deres betydning i forhold til problemet som ble studert.'''
+    bobkaare = '''#### Resultater
+Monte Carlo-simuleringen har evaluert de valgte alternativene basert på inputfaktorer med variabel usikkerhet. Resultatene viser både **Nettonåverdi (NNV)** og **Nettonåverdi per budsjettkrone (NNB)** med tilhørende konfidensintervaller for 95 % sikkerhet. Dette betyr at prosjektets samfunnsøkonomiske verdi sannsynligvis vil ligge innenfor disse grensene med en sannsynlighet på 95 %.
+
+- **NNV**: Nettonåverdi representerer den samlede samfunnsøkonomiske verdien av prosjektet, etter at alle kostnader og nyttefaktorer er tatt i betraktning.
+- **NNB**: Nettonåverdi per budsjettkrone viser den samfunnsøkonomiske avkastningen per investert krone.
+
+**Konklusjon**: Hvis konfidensintervallene indikerer at prosjektet har en positiv NNV, kan dette bety at prosjektet vil gi en samfunnsøkonomisk gevinst. På den andre siden, hvis intervallet inkluderer negative verdier, bør prosjektet vurderes med forsiktighet.
+'''
 
     # Hypotesetest
     hypothesis_result = ""
@@ -358,34 +385,34 @@ Oppsummering av de viktigste funnene fra Monte Carlo-simuleringen og deres betyd
         print(f"Shapiro-Wilk Test Sample 1: Statistic={shapiro_test_sample1[0]}, p-value={shapiro_test_sample1[1]}")
         if shapiro_test_sample1[1] > 0.05:
             normsh1='følger en normalfordeling'
-            print("Sample 1 follows a normal distribution (fail to reject H0).")
+            
         else:
             normsh1='følger ikke en normalfordeling'
-            print("Sample 1 does not follow a normal distribution (reject H0).")
+            
 
         print(f"Shapiro-Wilk Test Sample 2: Statistic={shapiro_test_sample2[0]}, p-value={shapiro_test_sample2[1]}")
         if shapiro_test_sample2[1] > 0.05:
             normsh2='følger en normalfordeling'
-            print("Sample 2 follows a normal distribution (fail to reject H0).")
+            
         else:
             normsh2='følger ikke en normalfordeling'
-            print("Sample 2 does not follow a normal distribution (reject H0).")
+            
 
         print(f"Kolmogorov-Smirnov Test Sample 1: Statistic={ks_test_sample1[0]}, p-value={ks_test_sample1[1]}")
         if ks_test_sample1[1] > 0.05:
             normks1='følger en normalfordeling'
-            print("Sample 1 follows a normal distribution (fail to reject H0).")
+            
         else:
             normks1='følger ikke en normalfordeling'
-            print("Sample 1 does not follow a normal distribution (reject H0).")
+            
 
         print(f"Kolmogorov-Smirnov Test Sample 2: Statistic={ks_test_sample2[0]}, p-value={ks_test_sample2[1]}")
         if ks_test_sample2[1] > 0.05:
             normks2='følger en normalfordeling'
-            print("Sample 2 follows a normal distribution (fail to reject H0).")
+            
         else:
             normks2='følger ikke en normalfordeling'
-            print("Sample 2 does not follow a normal distribution (reject H0).")
+            
         normal_sample1 = (shapiro_test_sample1[1] > 0.05) and (ks_test_sample1[1] > 0.05)
         normal_sample2 = (shapiro_test_sample2[1] > 0.05) and (ks_test_sample2[1] > 0.05)
 
@@ -506,7 +533,7 @@ Det ble gjort en Mann Whitney U test fordi et eller begge alternativer ser ikke 
     else:
         hypothesis_result = "#### Hypotesetest\nVelg to alternativer for å gjennomføre en hypotesetest."
         Graf2 = []
-    return Graf, tabell, Graf_nnb, tabell_nnb, hypothesis_result
+    return Graf, tabell, Graf_nnb, tabell_nnb, hypothesis_result, bobkaare
 
 app.layout = get_app_layout
 
@@ -515,7 +542,6 @@ app.layout = get_app_layout
             Output("memory", "data"),
             Output("memory1", "data"),
             Output("text-body", "children"),
-            Output("text-body2", 'children'),
             Output("memory2", "data")),
 )
 def callback_on_completion(status: du.UploadStatus):
@@ -717,10 +743,11 @@ Parametrene som er variert i simuleringen er:
 
 #### Resultater'''.format(Prisnivå, Kalkrente, Ansvarlig, antall)
     kaare = '''**Akkumulert Sannsynlighet**: Linjeplot som viser den akkumulerte sannsynligheten eller summen over gjentatte simuleringer.'''
-    bobkaare = '''#### Diskusjon
+#     bobkaare = '''#### Tolkning av resultater
+# Resultatene viser at det finnes en viss grad av usikkerhet i både NNV og NNB, med konfidensintervaller som strekker seg fra {} til {} for NNV, og fra {} til {} for NNB.
     
-- **Tolkning av resultater**: Diskuter implikasjonene av simulerte resultater og deres relevans for problemet som blir studert.
-- **Begrensninger og forbedringer**: Identifiser eventuelle begrensninger i simuleringen og mulige forbedringer for fremtidig arbeid.'''
+# - **Tolkning av resultater**: Diskuter implikasjonene av simulerte resultater og deres relevans for problemet som blir studert.
+# - **Begrensninger og forbedringer**: Identifiser eventuelle begrensninger i simuleringen og mulige forbedringer for fremtidig arbeid.'''
 
     # Fjerne all data fra mappe
     for filename in os.listdir(UPLOAD_FOLDER_ROOT):
@@ -733,7 +760,7 @@ Parametrene som er variert i simuleringen er:
         except Exception as e:
             print(f'Failed to delete {file_path}. Reason: {e}')
 
-    return d1, simulations, Prosjekt, Kjell, bobkaare, simulationsb
+    return d1, simulations, Prosjekt, Kjell, simulationsb
 
 if __name__ == '__main__':
     app.run_server(debug=True)
