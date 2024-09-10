@@ -1,2 +1,2 @@
 # Monte Carlo simulering
-Monte Carlo simulering av EFFEKTdatabaser. Dette er en versjon som fungerer på linux maskiner ved å innstallere mdbtools(https://github.com/mdbtools/mdbtools). Modellen ligger på nett: https://montecarlo.onrender.com
+Monte Carlo simulering av EFFEKTdatabaser. Modellen ligger på nett: https://montecarlo.onrender.com
