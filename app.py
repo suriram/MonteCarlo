@@ -448,9 +448,9 @@ Monte Carlo-simuleringen har evaluert de valgte alternativene basert på inputfa
         se_diff = np.sqrt((std1**2 / n1) + (std2**2 / n2))
         conf_interval_diff = stats.t.interval(0.95, df=min(n1, n2) - 1, loc=mean_diff, scale=se_diff)
 
-        print(f"\nt-statistic: {t_stat}")
-        print(f"p-value: {p_value}")
-        print(f"Effect Size (Cohen's d): {cohen_d}")
+        # print(f"\nt-statistic: {t_stat}")
+        # print(f"p-value: {p_value}")
+        # print(f"Effect Size (Cohen's d): {cohen_d}")
         # Print conclusion based on Cohen's d
         if abs(cohen_d) < 0.2:
             effect_size_conclusion = "Dette indikerer en veldig liten effektstørrelse."
@@ -592,6 +592,7 @@ def callback_on_completion(status: du.UploadStatus):
         UnikeUtbyggingsplaner = Utbyggingsplan1.Nr.unique().tolist()
         dfref = Referanse.query('ProNr == {} & Alternativ == 0'.format(j))
         Referansekostnader = dfref.iloc[:, 4:23].fillna(0)
+        EFFEKTRef = Referansekostnader.sum()
         TotalReferansekostnader = Referansekostnader.sum()
         DogVRef = Referansekostnader['Drift_vedlikehold'].sum()
         UlykkerRef = Referansekostnader['Ulykker'].sum()
@@ -616,6 +617,7 @@ def callback_on_completion(status: du.UploadStatus):
             dftil = Tiltak.query('ProNr == {} & PlanNr == {} & Alternativ == 0'.format(j, i))
             Tiltakskostnader = dftil.iloc[:, 4:24].fillna(0)
             TotalTiltakskostnader = Tiltakskostnader.sum()
+            EFFEKTTil = Tiltakskostnader.sum()
             TrafnytteTil = Tiltakskostnader['Trafikantnytte'].sum()
             DogVTil = Tiltakskostnader['Drift_vedlikehold'].sum()
             UlykkerTil = Tiltakskostnader['Ulykker'].sum()
@@ -641,6 +643,7 @@ def callback_on_completion(status: du.UploadStatus):
             kostnader_referanse = Referansekostnader['Drift_vedlikehold'].sum() + Referansekostnader['Offentlige_overføringer'].sum() + Referansekostnader['Skatte_avgiftsinntekter'].sum()
             diff_kostnader = abs(kostnader_tiltak - kostnader_referanse)
             diff = TiltakNytte - ReferanseNytte
+            Effekt = EFFEKTTil - EFFEKTRef
             correlation_matrix = np.array([[1, 0.05, 0.1, 0], [0.05, 1, 0, 0], [0.1, 0, 1, 0], [0, 0, 0, 1]])
             testing4 = pd.DataFrame(correlation_matrix)
             std_dev = np.array([1, 1, 1, 1])
@@ -691,21 +694,18 @@ def callback_on_completion(status: du.UploadStatus):
                 df['nnv'] = (TrafnytteTil * df[0] + (DogVTil - DogVRef) * df[1] + (UlykkerTil - UlykkerRef) * df[2] + Investring * df[3] + diff)
                 df['nnb'] = (TrafnytteTil * df[0] + (DogVTil - DogVRef) * df[1] + (UlykkerTil - UlykkerRef) * df[2] + Investring * df[3] + diff) / diff_kostnader
                 df.columns = ['Trafikantnytte', 'Drift og vedlikehold', 'Ulykker', 'Investering', 'NNV', 'NNB']
-                return df[['NNV','NNB']]
-
+                return df[['NNV', 'NNB']] 
+            
             cholesky_matrix = cholesky_decomposition_with_correlation(correlation_matrix, std_dev)
             correlated_samples = generate_correlated_samples(num_samples, cholesky_matrix)
-            dfnn = example_function(correlated_samples)
-            #print(dfnn)
+            dfnn = example_function(correlated_samples)            
             dfnn = pd.DataFrame(dfnn)
             dfnnv = dfnn['NNV']
-            #
             dfnnv = pd.DataFrame(dfnnv)
             dfnnb = dfnn['NNB']
-            #print(dfnnb)
             dfnnb = pd.DataFrame(dfnnb)
             dfnnv = dfnnv.rename(columns={"NNV": "Prosjekt: {}, Utbyggingsplan: {} ".format(prosjetnavn, plannavn)})
-            print(dfnnv)
+            # print(dfnnv)
             dfnnb = dfnnb.rename(columns={"NNB": "Prosjekt: {}, Utbyggingsplan: {} ".format(prosjetnavn, plannavn)})
             #print(dfnnb)
             simulations.append(dfnnv)
@@ -718,7 +718,7 @@ def callback_on_completion(status: du.UploadStatus):
     simulations = pd.concat(simulations, axis=1)
     #print(simulations)
     simulationsb = pd.concat(simb, axis=1)
-    print(simulationsb)
+    # print(simulationsb)
     antall = format_with_space(num_samples)
     li = simulations.columns
     lis = li
