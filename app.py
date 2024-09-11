@@ -1,3 +1,4 @@
+# Laget av Marius Fossen 
 import pandas as pd
 import subprocess
 from io import StringIO
@@ -76,7 +77,7 @@ Ved å utføre tusenvis av simuleringer med varierende inngangsdata, gir modelle
 #### Slik bruker du applikasjonen:
 1. Last opp en EFFEKT-database.
 2. Velg et eller flere prosjektalternativer fra nedtrekksmenyen.
-3. Se resultatene for Nettonåverdi (NNV) og Nettonåverdi per budsjettkrone (NNB) i form av tabeller og grafer.
+3. Se resultatene for nettonåverdi (NNV) og nettonåverdi per budsjettkrone (NNB) i form av tabeller og grafer.
 ''', className='text-body mt-4', id='text-body'))
         ]),
         dbc.Row([
@@ -363,7 +364,7 @@ def update_graph(dropdown, data, data2, data3):
     flower_nnb = lower_nnb.round(2)
     
     bobkaare = '''#### Resultater
-Monte Carlo-simuleringen har evaluert de valgte alternativene basert på inputfaktorer med variabel usikkerhet. Resultatene viser både **Nettonåverdi (NNV)** og **Nettonåverdi per budsjettkrone (NNB)** med tilhørende konfidensintervaller for 95 % sikkerhet. Dette betyr at prosjektets samfunnsøkonomiske verdi sannsynligvis vil ligge innenfor disse grensene med en sannsynlighet på 95 %.
+Monte Carlo-simuleringen har evaluert de valgte alternativene basert på inputfaktorer med variabel usikkerhet. Resultatene viser både **nettonåverdi (NNV)** og **nettonåverdi per budsjettkrone (NNB)** med tilhørende konfidensintervaller for 95 % sikkerhet. Dette betyr at prosjektets samfunnsøkonomiske verdi sannsynligvis vil ligge innenfor disse grensene med en sannsynlighet på 95 %.
 
 - **NNV**: Nettonåverdi representerer den samlede samfunnsøkonomiske verdien av prosjektet, etter at alle kostnader og nyttefaktorer er tatt i betraktning.
 - **NNB**: Nettonåverdi per budsjettkrone viser den samfunnsøkonomiske avkastningen per investert krone.
