@@ -19,11 +19,6 @@ import os
 import plotly.figure_factory as ff
 #import matplotlib.pyplot as plt
 
-lower = None
-upper = None
-lower_nnb = None
-upper_nnb = None
-
 load_figure_template('bootstrap')
 
 UPLOAD_FOLDER_ROOT = 'Uploads'
@@ -469,13 +464,10 @@ Monte Carlo-simuleringen har evaluert de valgte alternativene basert på inputfa
 
 **Alternativ hypotese t-test(H1)**: Det er en signifikant forskjell i snittet mellom {col1} og {col2}.  
 
-**t-statistic**: {t_stat:.4e}  
-**p-value**: {p_value:.2e} 
-  
-
 ***Konklusjon***: {'Avvis' if p_value < 0.05 else 'Kan ***ikke*** avvise'} nullhypotesen for 0.05 signifikansnivå.
         '''
-
+# **t-statistic**: {t_stat:.4e}  
+# **p-value**: {p_value:.2e} 
         """else:
             # Mann-Whitney U test
             n1 = len(sample1)
@@ -647,14 +639,16 @@ def callback_on_completion(status: du.UploadStatus):
             Effekt = EFFEKTTil - EFFEKTRef
             correlation_matrix = np.array([[1, 0.05, 0.1, 0], [0.05, 1, 0, 0], [0.1, 0, 1, 0], [0, 0, 0, 1]])
             testing4 = pd.DataFrame(correlation_matrix)
-            std_dev = np.array([1, 1, 1, 1])
+            std_dev = np.array([1, 1, 1, 1])           
+
             num_samples = 50000
 
             def show_func(d):
                 funksjoner = {
-                    'normal': np.random.default_rng().normal(1, 0.3, size=(num_samples, 1)),
-                    'uniform': np.random.default_rng().uniform(0.8, 1.2, size=(num_samples, 1)),
-                    'triangular': np.random.default_rng().triangular(0.8, 1, 1.4, size=(num_samples, 1)),
+                    'normalTR': np.random.default_rng().normal(1, 0.220388, size=(num_samples, 1)),
+                    'normal1UL': np.random.default_rng().normal(1, 0.075095, size=(num_samples, 1)),
+                    'normal2DV': np.random.default_rng().normal(1, 0.18, size=(num_samples, 1)),
+                    'triangular': np.random.default_rng().triangular(0.89, 1, 1.4, size=(num_samples, 1)),
                     'lognormal': np.random.default_rng().lognormal(1, 0.1, size=(num_samples, 1))
                 }
                 return funksjoner[d]
@@ -679,9 +673,9 @@ def callback_on_completion(status: du.UploadStatus):
                 return L
 
             def generate_correlated_samples(num_samples, cholesky_matrix):
-                Tr = show_func('normal')
-                DV = show_func('normal')
-                Ul = show_func('normal')
+                Tr = show_func('normalTR')
+                DV = show_func('normal2DV')
+                Ul = show_func('normal1UL')
                 In = show_func('triangular')
                 ukorr = np.concatenate((Tr, DV, Ul, In), axis=1)
                 ukorr1 = np.column_stack((ukorr))
@@ -737,13 +731,14 @@ Nedenfor må det velges alternativ fra EFFEKTbasen i nedtrekksmenyen. Det er mul
 Formålet med Monte Carlo simuleringen er å vise usikkerhetens konsekvens for nettonåverdien til prosjektet. Ved å vise nettonåverdien som et konfidensintervall vil beslutningstager få et mer helhetlig bilde av prosjektetet. 
 
 Parametrene som er variert i simuleringen er:
-- **Trafikantnytte**: Normalfordelt med et standardavvik på 20%, 
-- **Ulykkeskostnader**: Normalfordelt med et standardavvik på 20%, 
-- **Drift & vedlikehold**: Normalfordelt med et standardavvik på 20%, har også en korrelasjonskoffesient med trafikantnytten på 0,57 og ulykker på 0,28
-- **Investeringskostnader**: Trekantfordeling som går 20% ned og 40% over.
+- **Trafikantnytte**: Normalfordelt med et standardavvik på 22%, 
+- **Ulykkeskostnader**: Normalfordelt med et standardavvik på 8%, 
+- **Drift & vedlikehold**: Normalfordelt med et standardavvik på 18%, har også en korrelasjonskoffesient med trafikantnytten på 0,57 og ulykker på 0,28
+- **Investeringskostnader**: Trekantfordeling som går 11% ned og 20% over.
 
 #### Resultater'''.format(Prisnivå, Kalkrente, Ansvarlig, antall)
     kaare = '''**Akkumulert Sannsynlighet**: Linjeplot som viser den akkumulerte sannsynligheten eller summen over gjentatte simuleringer.'''
+
 #     bobkaare = '''#### Tolkning av resultater
 # Resultatene viser at det finnes en viss grad av usikkerhet i både NNV og NNB, med konfidensintervaller som strekker seg fra {} til {} for NNV, og fra {} til {} for NNB.
     
