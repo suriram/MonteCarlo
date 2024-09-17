@@ -77,6 +77,7 @@ Ved å utføre tusenvis av simuleringer med varierende inngangsdata, gir modelle
         ]),
         dbc.Row([
             dcc.Store(id='memory2',storage_type ='memory'),
+            # dcc.Store(id='memory3',storage_type ='memory'),
             dbc.Col(dcc.Dropdown(options={}, multi=True, id='dropdown', placeholder='Velg alternativ'), className='mb-auto')
         ]),
         dbc.Row([
@@ -84,13 +85,13 @@ Ved å utføre tusenvis av simuleringer med varierende inngangsdata, gir modelle
                 dbc.Collapse(
                     dbc.Accordion([
                         dbc.AccordionItem([
-                            dbc.Col(dcc.Loading(id='loading-1', type='default', children=html.Div(id='tabell')), width=12),
-                            dbc.Col(dcc.Loading(id='loading-2', type='default', children=html.Div(id='Histo')), width=12),
-                        ], title="NNV (Nettonåverdi)"),
-                        dbc.AccordionItem([
-                            dbc.Col(dcc.Loading(id='loading-3', type='default', children=html.Div(id='tabell_nnb')), width=12),
-                            dbc.Col(dcc.Loading(id='loading-4', type='default', children=html.Div(id='Histo2')), width=12),
+                            dbc.Col(dcc.Loading(id='loading-1', type='default', children=html.Div(id='tabell_nnb')), width=12),
+                            dbc.Col(dcc.Loading(id='loading-2', type='default', children=html.Div(id='Histo2')), width=12),
                         ], title="NNB (Nettonåverdi pr budsjettkrone)"),
+                        dbc.AccordionItem([
+                            dbc.Col(dcc.Loading(id='loading-3', type='default', children=html.Div(id='tabell')), width=12),
+                            dbc.Col(dcc.Loading(id='loading-4', type='default', children=html.Div(id='Histo')), width=12),
+                        ], title="NNV (Nettonåverdi)"),
                     ], always_open=True),
                     id='accordion-collapse',
                     is_open=False
@@ -165,7 +166,7 @@ def std_dev_confidence_interval(data):
     [Input('dropdown', 'value'),
      State('memory', 'data'),
      State('memory1', 'data'),
-     State('memory2','data')]
+     State('memory2','data'),]
 )
 def update_graph(dropdown, data, data2, data3):
     if not dropdown:
@@ -177,20 +178,27 @@ def update_graph(dropdown, data, data2, data3):
     
     #print(Prosjekt.head())
     df2 = pd.DataFrame(data3)
-    print('df2 head',df2.head())
+    # print('df2 head',df2.head())
     Navn = Prosjekt.iat[0, 1]
     Kalkrente = Prosjekt.iat[0, 3]
     Prisnivå = Prosjekt.iat[0, 4]
     Sammenligningsår = Prosjekt.iat[0, 5]
     Levetid = Prosjekt.iat[0, 6]
     Ansvarlig = Prosjekt.iat[0, 45]
-
+    # print(data4)
+    
+    
     df1 = df[dropdown].describe()
     df1.index = ['Antall simuleringer', 'Gjennomsnitt', 'Standardavvik', 'Minimumsverdi', '25% kvantil', '50% kvantil', '75% kvantil', 'Maksimumsverdi']
     df_nnb = pd.DataFrame(data3)
     df_nnb1 = df_nnb[dropdown].describe()
     df_nnb1.index = ['Antall simuleringer', 'Gjennomsnitt', 'Standardavvik', 'Minimumsverdi', '25% kvantil', '50% kvantil', '75% kvantil', 'Maksimumsverdi']
-
+    
+    # # Effektdata i tabell
+    # Effekt_tall = {col: [Effekt.T.sum()] for col in dropdown}
+    # Effekt_df = pd.DataFrame(Effekt_tall, index=['NNV fra EFFEKT'])
+    # df1 = pd.concat([df1, Effekt_df])
+    
     # 95% ki
     confidence_intervals_std = {}
     confidence_intervals_std_nnb = {}
@@ -200,7 +208,6 @@ def update_graph(dropdown, data, data2, data3):
         
         m_std_nnb, lower_std_nnb, upper_std_nnb = std_dev_confidence_interval(df_nnb[col])
         confidence_intervals_std_nnb[col] = {'Lower': lower_std_nnb, 'Upper': upper_std_nnb}
-
 
     # KI for data
     confidence_data_std = {col: [confidence_intervals_std[col]['Lower'], confidence_intervals_std[col]['Upper']] for col in dropdown}
@@ -535,15 +542,17 @@ app.layout = get_app_layout
             Output("memory", "data"),
             Output("memory1", "data"),
             Output("text-body", "children"),
-            Output("memory2", "data")),
+            Output("memory2", "data"),),
 )
 def callback_on_completion(status: du.UploadStatus):
     pd.set_option('future.no_silent_downcasting', True)    
     simulations = []
     simb = []
     prosjekter = []
+    Effktl = []
+    Effktl2 = []
     Sti = status.uploaded_files[0]
-    print(Sti)
+    # print(Sti)
     def export_table_to_dataframe(database_path, table_name):
         command = ['mdb-export', database_path, table_name]
         process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -584,7 +593,8 @@ def callback_on_completion(status: du.UploadStatus):
         Utbyggingsplan1 = Utbyggingsplan.loc[Utbyggingsplan.ProNr == j]
         UnikeUtbyggingsplaner = Utbyggingsplan1.Nr.unique().tolist()
         dfref = Referanse.query('ProNr == {} & Alternativ == 0'.format(j))
-        Referansekostnader = dfref.iloc[:, 4:23].fillna(0)
+        Referansekostnader = dfref.iloc[:, 3:23].fillna(0)
+        print(Referansekostnader)
         EFFEKTRef = Referansekostnader.sum()
         TotalReferansekostnader = Referansekostnader.sum()
         DogVRef = Referansekostnader['Drift_vedlikehold'].sum()
@@ -609,6 +619,7 @@ def callback_on_completion(status: du.UploadStatus):
             plannavn = plannavn.iat[0, 2]
             dftil = Tiltak.query('ProNr == {} & PlanNr == {} & Alternativ == 0'.format(j, i))
             Tiltakskostnader = dftil.iloc[:, 4:24].fillna(0)
+            print(prosjetnavn,plannavn,Tiltakskostnader)
             TotalTiltakskostnader = Tiltakskostnader.sum()
             EFFEKTTil = Tiltakskostnader.sum()
             TrafnytteTil = Tiltakskostnader['Trafikantnytte'].sum()
@@ -632,23 +643,38 @@ def callback_on_completion(status: du.UploadStatus):
                            Tiltakskostnader['Restverdi'].sum() +
                            Tiltakskostnader['Skattekostnad'].sum() +
                            Tiltakskostnader['Restverdi'].sum())
+            print(TiltakNytte)
             kostnader_tiltak = Tiltakskostnader['Investeringer'].sum() + Tiltakskostnader['Drift_vedlikehold'].sum() + Tiltakskostnader['Offentlige_overføringer'].sum() + Tiltakskostnader['Skatte_avgiftsinntekter'].sum()
             kostnader_referanse = Referansekostnader['Drift_vedlikehold'].sum() + Referansekostnader['Offentlige_overføringer'].sum() + Referansekostnader['Skatte_avgiftsinntekter'].sum()
             diff_kostnader = abs(kostnader_tiltak - kostnader_referanse)
             diff = TiltakNytte - ReferanseNytte
-            Effekt = EFFEKTTil - EFFEKTRef
-            correlation_matrix = np.array([[1, 0.05, 0.1, 0], [0.05, 1, 0, 0], [0.1, 0, 1, 0], [0, 0, 0, 1]])
+            Effekt = (EFFEKTTil - EFFEKTRef).sum()
+            print(prosjetnavn, plannavn,Effekt)
+            correlation_matrix = np.array([[1, 0.57, 0, 0], [0.57, 1, 0.28, 0], [0, 0.28, 1, 0], [0, 0, 0, 1]])
             testing4 = pd.DataFrame(correlation_matrix)
-            std_dev = np.array([1, 1, 1, 1])           
+            std_dev = np.array([0.220388, 0.18, 0.075095, 0.1])
+            original_means = np.array([1, 1, 1, 1])  
+            original_std_devs = np.array([0.220388, 0.18, 0.075095, 0.1])        
 
             num_samples = 50000
 
+            def normalize(samples, mean, std_dev):
+                return (samples - mean) / std_dev
+            def denormalize(samples, mean):
+                return samples + mean
+            
+            def calculate_confidence_interval(data, confidence=0.95):
+                mean = np.mean(data)
+                std_err = np.std(data) / np.sqrt(len(data))
+                margin_of_error = std_err * 1.96  
+                return mean, mean - margin_of_error, mean + margin_of_error
+            
             def show_func(d):
                 funksjoner = {
                     'normalTR': np.random.default_rng().normal(1, 0.220388, size=(num_samples, 1)),
                     'normal1UL': np.random.default_rng().normal(1, 0.075095, size=(num_samples, 1)),
                     'normal2DV': np.random.default_rng().normal(1, 0.18, size=(num_samples, 1)),
-                    'triangular': np.random.default_rng().triangular(0.89, 1, 1.4, size=(num_samples, 1)),
+                    'triangular': np.random.default_rng().triangular(0.89, 1, 1.2, size=(num_samples, 1)),
                     'lognormal': np.random.default_rng().lognormal(1, 0.1, size=(num_samples, 1))
                 }
                 return funksjoner[d]
@@ -666,22 +692,11 @@ def callback_on_completion(status: du.UploadStatus):
 
             def cholesky_decomposition_with_correlation(correlation_matrix, std_dev):
                 covariance_matrix = correlation_to_covariance(correlation_matrix, std_dev)
-                # print(covariance_matrix)
-                cov1 = covariance_from_correlation(correlation_matrix)
-                # print(cov1)
-                L = np.linalg.cholesky(cov1)
+                L = np.linalg.cholesky(covariance_matrix)
                 return L
 
-            def generate_correlated_samples(num_samples, cholesky_matrix):
-                Tr = show_func('normalTR')
-                DV = show_func('normal2DV')
-                Ul = show_func('normal1UL')
-                In = show_func('triangular')
-                ukorr = np.concatenate((Tr, DV, Ul, In), axis=1)
-                ukorr1 = np.column_stack((ukorr))
-                testing = pd.DataFrame(ukorr)
-                correlated_samples = np.dot(ukorr, cholesky_matrix.T)
-                testing2 = pd.DataFrame(correlated_samples)
+            def generate_correlated_samples(normalized_samples, cholesky_matrix):
+                correlated_samples = np.dot(normalized_samples, cholesky_matrix.T)    
                 return correlated_samples
 
             def example_function(samples):
@@ -689,40 +704,57 @@ def callback_on_completion(status: du.UploadStatus):
                 df['nnv'] = (TrafnytteTil * df[0] + (DogVTil - DogVRef) * df[1] + (UlykkerTil - UlykkerRef) * df[2] + Investring * df[3] + diff)
                 df['nnb'] = (TrafnytteTil * df[0] + (DogVTil - DogVRef) * df[1] + (UlykkerTil - UlykkerRef) * df[2] + Investring * df[3] + diff) / diff_kostnader
                 df.columns = ['Trafikantnytte', 'Drift og vedlikehold', 'Ulykker', 'Investering', 'NNV', 'NNB']
-                return df[['NNV', 'NNB']] 
+                return df[['NNV', 'NNB']]
             
+            Tr = show_func('normalTR')
+            DV = show_func('normal2DV')
+            Ul = show_func('normal1UL')
+            In = show_func('triangular')
+            ukorr = np.concatenate((Tr, DV, Ul, In), axis=1)
+            
+            # Normaliser
+            Tr_norm = normalize(Tr, original_means[0], original_std_devs[0])
+            DV_norm = normalize(DV, original_means[1], original_std_devs[1])
+            Ul_norm = normalize(Ul, original_means[2], original_std_devs[2])
+            In_norm = normalize(In, original_means[3], original_std_devs[3])    
+
+            normalized_samples = np.concatenate((Tr_norm, DV_norm, Ul_norm, In_norm), axis=1)   
             cholesky_matrix = cholesky_decomposition_with_correlation(correlation_matrix, std_dev)
-            correlated_samples = generate_correlated_samples(num_samples, cholesky_matrix)
-            dfnn = example_function(correlated_samples)            
+            correlated_samples = generate_correlated_samples(normalized_samples, cholesky_matrix)
+
+            Tr_denorm = denormalize(correlated_samples[:, 0], original_means[0])
+            DV_denorm = denormalize(correlated_samples[:, 1], original_means[1])
+            Ul_denorm = denormalize(correlated_samples[:, 2], original_means[2])
+            In_denorm = denormalize(correlated_samples[:, 3], original_means[3])
+            
+            denormalized_samples = np.column_stack((Tr_denorm, DV_denorm, Ul_denorm, In_denorm))
+            print("Means after Denormalization:", np.mean(denormalized_samples, axis=0))
+            print("Standard Deviations After Denormalization:\n", np.std(denormalized_samples, axis=0))
+            dfnn = example_function(denormalized_samples)       
             dfnn = pd.DataFrame(dfnn)
+            print(dfnn.mean())
             dfnnv = dfnn['NNV']
             dfnnv = pd.DataFrame(dfnnv)
             dfnnb = dfnn['NNB']
             dfnnb = pd.DataFrame(dfnnb)
             dfnnv = dfnnv.rename(columns={"NNV": "Prosjekt: {}, Utbyggingsplan: {} ".format(prosjetnavn, plannavn)})
-            # print(dfnnv)
             dfnnb = dfnnb.rename(columns={"NNB": "Prosjekt: {}, Utbyggingsplan: {} ".format(prosjetnavn, plannavn)})
-            #print(dfnnb)
             simulations.append(dfnnv)
-            
             simb.append(dfnnb)
             KI = std_dev_confidence_interval(dfnnv)
             KIb = std_dev_confidence_interval(dfnnb)
             # print(KI)
 
     simulations = pd.concat(simulations, axis=1)
-    #print(simulations)
     simulationsb = pd.concat(simb, axis=1)
-    # print(simulationsb)
     antall = format_with_space(num_samples)
     li = simulations.columns
     lis = li
     d1 = dict(zip(li, lis))
     simulations = simulations.to_dict()
     simulationsb = simulationsb.to_dict()
-    print('nnv data',simulations.keys())
-    print('nnb data:', simulationsb.keys())
     Prosjekt = ProsjektPlan.to_dict()
+    
     Bjarne = html.H4('{}'.format(Navn))
     Kjell = '''Prisnivået er {} og det er benyttet en kalkulasjonsrente på {} prosent. Ansvarlig for EFFEKTbasen er {}. Det er gjort {} simuleringer.
 
